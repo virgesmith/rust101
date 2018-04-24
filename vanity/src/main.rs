@@ -3,56 +3,98 @@ extern crate openssl;
 use openssl::ec::{EcKey,EcGroup,PointConversionForm};
 use openssl::nid::Nid;
 use openssl::bn::{BigNum,BigNumContext};
+use openssl::sha;
+use openssl::hash::{hash, MessageDigest};
 
+//const SIZE: usize = 32;
 
-const SIZE: usize = 32;
+// returns Vec so can be prepended
+pub fn hash160(data: &[u8]) -> Vec<u8> {
+  let data1 = sha::sha256(data);
+  let res = hash(MessageDigest::ripemd160(), &data1).unwrap().to_vec(); //to_vec().clone_into_array()
+  // let mut a = [0; 20];
+  // for i in 0..a.len() {
+  //     // Panics if not enough input
+  //     a[i] = res[i];
+  // }
+  // a
+  res
+}
+
+pub fn hash256(data: &[u8]) -> [u8; 32] {
+  sha::sha256(&sha::sha256(&data[..]))
+}
+
 
 fn main() {
   openssl::init();
-  let vanity = String::from("1RUST");
+  let _vanity = String::from("1RUST");
   let group = EcGroup::from_curve_name(Nid::SECP256K1).unwrap(); 
   let mut ctx = BigNumContext::new().unwrap();
 
   let key = EcKey::generate(&group).unwrap();
   assert!(key.check_key().unwrap() == ()); // returns Result<(), ErrorStack>
   let bytes = key.public_key().to_bytes(&group, PointConversionForm::COMPRESSED, &mut ctx).unwrap();
-  println!("pubkey {:?}", bytes);
+  //println!("pubkey {:?}", bytes);
 
-  // TODO pre/append network/checksum...
-
-  Base58_fromBytes(bytes)
+  let mut data = hash160(&bytes);
+  //let mut data = [0; 20].to_vec();
+  
+  // prepend network byte
+  data.insert(0, 0);
+  //let check = sha::sha256(&sha::sha256(&data1[..]));
+  let check = hash256(&data);
+  // append checksum...
+  let addr = [&data[..], &check[0..4]].concat();
+  //Base58_fromBytes(hash.to_vec());
+  base58_from_bytes(addr);
 }
 
+
+// zero PKH: 111111111111111111114oLvT2
+// 1GGZnReKybChriBrvxEDWsQqQJBLQHvRzW
+// priv [0x00, 0x94, 0x19, 0x9c, 0x35, 0xc8, 0x84, 0x8e, 0x03, 0xe9, 0xcb, 0x43, 0x80, 0xef, 0x71, 0x2b, 0xc0, 0x77, 0xa5, 0x99, 0x1f, 0xa0, 0xbb, 0xf2, 0xc4, 0xa4, 0x0b, 0x03, 0x53, 0xe3, 0xad, 0x6c, 0x27]
+// pub [0x04, 0xf6, 0x75, 0x5a, 0xfd, 0x57, 0xb6, 0xda, 0x43, 0xe8, 0xee, 0xc8, 0x14, 0x4b, 0x5e, 0xfe, 0x63, 0xf9, 0x02, 0xcc, 0xc1, 0x98, 0x04, 0x61, 0xfc, 0x66, 0x43, 0x56, 0x71, 0xf5, 0x4b, 0xea, 0x02, 0x14, 0x7c, 0x8f, 0x92, 0x4a, 0x1e, 0x7c, 0xbe, 0x66, 0xe6, 0xcd, 0xf0, 0x65, 0x32, 0x13, 0x63, 0x51, 0xd8, 0x86, 0x46, 0x80, 0x94, 0xa9, 0x3f, 0x89, 0xe9, 0x94, 0xfa, 0x8e, 0xbb, 0xd0, 0x80]
+// pub [0x02, 0xf6, 0x75, 0x5a, 0xfd, 0x57, 0xb6, 0xda, 0x43, 0xe8, 0xee, 0xc8, 0x14, 0x4b, 0x5e, 0xfe, 0x63, 0xf9, 0x02, 0xcc, 0xc1, 0x98, 0x04, 0x61, 0xfc, 0x66, 0x43, 0x56, 0x71, 0xf5, 0x4b, 0xea, 0x02]
 
 static BASE58_DIGITS_BTC: &'static str = 
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
-struct Base58 {
+// struct Base58 {
 
-}
+// }
 
 //impl Base58 {
-  fn Base58_fromBytes(b: Vec<u8>) {
-    //  if b.empty() {
-    //    String::from("")
-    //  }
+  fn base58_from_bytes(b: Vec<u8>) {
+    if b.len() == 0 {
+      () //String::from("")
+    }
     let mut ctx = BigNumContext::new().unwrap();
     let base = BigNum::from_u32(58).unwrap(); 
     let zero = BigNum::from_u32(0).unwrap(); 
     let mut r = BigNum::new().unwrap();
     let mut x = BigNum::from_slice(&b).unwrap();
 
+    let addr_len = b.len() * 138 / 100;
+
+    let mut buf : Vec<char> = Vec::with_capacity(64);
     let mut i = 0;
     while x != zero {
       let mut tmpx = BigNum::new().unwrap();
-      // BN_div(&x, &r, &x, &base, ctx);
-      tmpx.div_rem(&mut r, &x, &base, &mut ctx);
+      let _ = tmpx.div_rem(&mut r, &x, &base, &mut ctx);
       x = tmpx;
-      // print r
       let j = r.mod_word(58).unwrap() as usize;
-      //println!("{:?}", j);
-      println!("{}", BASE58_DIGITS_BTC.as_bytes()[j] as char);
+      buf.push(BASE58_DIGITS_BTC.as_bytes()[j] as char);
+      i += 1;
     }
+    // add leading zeros
+    while i < addr_len {
+      buf.push(BASE58_DIGITS_BTC.as_bytes()[0] as char);
+      i += 1;
+    }
+    let str: String = buf.into_iter().rev().collect();   
+    println!("1111111111111111111114oLvT2\n{}", str);
+    //1111111111111111111114oLvT2
   }
 //}
 
@@ -111,41 +153,6 @@ struct Base58 {
 //     }
 //     return std::string(it, str.rend());
 //   }  
-
-
-
-  
-  
-//   let mut buf = [0; SIZE];
-//   rand_bytes(&mut buf).unwrap();
-
-//   // EC_KEY_new_by_curve_name(NID_secp256k1);
-//   let prv_key = EcKey::from_curve_name(Nid::SECP256K1).unwrap(); 
-  
-//   // create an EcKey from the binary form of a EcPoint
-//   let bignum = BigNum::from_slice(&buf).unwrap();
-//   println!("rand {:?}", bignum);
-
-// //   EC_KEY_set_private_key(ecKey, &priv);
- 
-//   // EC_KEY_get0_group(ecKey);
-//   let group = prv_key.group();
-
-//   let mut point = EcPoint::new(&group).unwrap();
-//   let prv_key = EcKey::from_private_components(&group, &bignum, &point).unwrap(); 
-
-//   let mut ctx = BigNumContext::new().unwrap();
-//   let mut pubpt = EcPoint::new(&group).unwrap();
-//   point.mul(&group, &pubpt, &bignum, &ctx).unwrap();
-//   pubpt.mul(&group, &point, &bignum, &ctx).unwrap();
-//   println!("prvkey check {:?}", prv_key.check_key());
-//   println!("pubkey {:?}", prv_key.public_key().
-//     to_bytes(&group, PointConversionForm::COMPRESSED, &mut ctx).unwrap().clone());
-
-//   let pub_key = EcKey::from_public_key(&group, &pubpt).unwrap();
-//   println!("pubkey check {:?}", pub_key.check_key());
-//   println!("pubkey {:?}", pub_key.public_key().
-//     to_bytes(&group, PointConversionForm::COMPRESSED, &mut ctx).unwrap().clone());
 
 
 
