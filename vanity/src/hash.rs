@@ -5,8 +5,7 @@ use openssl::hash::{hash, MessageDigest};
 
 // returns Vec so can be prepended
 pub fn hash160(data: &[u8]) -> Vec<u8> {
-  let data1 = sha::sha256(data);
-  let res = hash(MessageDigest::ripemd160(), &data1).unwrap().to_vec(); //to_vec().clone_into_array()
+  let res = hash(MessageDigest::ripemd160(), &sha::sha256(data)).unwrap().to_vec(); 
   // let mut a = [0; 20];
   // for i in 0..a.len() {
   //     // Panics if not enough input

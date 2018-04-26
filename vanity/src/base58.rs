@@ -97,6 +97,7 @@ pub static DIGITS_BTC: &'static str =
 //     return std::string(it, str.rend());
 //   }  
 
+// TODO implement
   // fn to_bytes(s: &str) -> Vec<u8> {
   //   let mut data: Vec<u8> = Vec{};
 
