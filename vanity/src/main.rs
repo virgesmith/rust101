@@ -47,8 +47,9 @@ fn main() {
     i += 1;
     if vanity == cmp {
       let elapsed = time::get_time() - start;
-      println!("Found {}\n{}/sec ", addr, i * 1000 / elapsed.num_milliseconds());
-      println!("Bignum prev key = {}", key.private_key());
+      println!("Found {}\n{}/sec ", addr, i * 1000 / (1+elapsed.num_milliseconds()));
+      println!("prv key = {:?}", key.private_key().to_vec());
+      println!("wif = {}", address::wif(key.private_key().to_vec()));
       break;
     }
   }
