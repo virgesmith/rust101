@@ -53,6 +53,9 @@ fn main() {
       break;
     }
   }
+  let a = "1GGZnReKybChriBrvxEDWsQqQJBLQHvRzW";
+  //println!("{:?}", base58::to_bytes(a));
+  println!("{} => \n{:?}", a, base58::from_bytes(base58::to_bytes(a)));
 }
 
 
