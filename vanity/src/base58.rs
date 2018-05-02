@@ -46,23 +46,18 @@ fn base58_lookup(digits: &str) -> [u8; 256] {
 }
 
 
-//TODO implement
 pub fn to_bytes(s: &str) -> Vec<u8> {
-
-  let mut ctx = BigNumContext::new().unwrap();
-  //let base = BigNum::from_u32(58).unwrap(); 
   let base = 58; 
   let mut n = BigNum::from_u32(0).unwrap(); 
 
-  // TODO make static
+  // TODO make static?
   let lookup = base58_lookup(DIGITS_BTC);
   // loop over str
   for c in s.chars() {
     let v = lookup[c as usize];
-    n.mul_word(base);
-    n.add_word(v as u32); 
+    let _ = n.mul_word(base);
+    let _ = n.add_word(v as u32); 
     //println!("{}", n/*, s[i]*/);
   }
-
   n.to_vec()
 }

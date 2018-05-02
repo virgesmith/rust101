@@ -50,12 +50,12 @@ fn main() {
       println!("Found {}\n{}/sec ", addr, i * 1000 / (1+elapsed.num_milliseconds()));
       println!("prv key = {:?}", key.private_key().to_vec());
       println!("wif = {}", address::wif(key.private_key().to_vec()));
+      println!("{} => \n{:?}", addr, base58::from_bytes(base58::to_bytes(&addr)));
       break;
     }
   }
-  let a = "1GGZnReKybChriBrvxEDWsQqQJBLQHvRzW";
+  //let a = "1GGZnReKybChriBrvxEDWsQqQJBLQHvRzW";
   //println!("{:?}", base58::to_bytes(a));
-  println!("{} => \n{:?}", a, base58::from_bytes(base58::to_bytes(a)));
 }
 
 
