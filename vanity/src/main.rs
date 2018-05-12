@@ -5,6 +5,7 @@ use std::env;
 use std::thread;
 use std::sync::{Arc, Mutex, Condvar};
 use openssl::ec::{EcKey,EcGroup,PointConversionForm};
+use openssl::pkey::Private;
 use openssl::nid::Nid;
 use openssl::bn::BigNumContext;
 
@@ -30,6 +31,7 @@ mod address;
 //   j+1
 // }
 
+//type AddressResult = (usize, Option<EcKey<Private>>);
 
 fn main() {
 
@@ -59,22 +61,32 @@ fn main() {
     handles.push( thread::spawn(move || { worker(v, p) }));
   }
 
-  for (_, e) in handles.into_iter().enumerate() {
-    println!("{:?}", e.join().unwrap());
-  }
+  let group = EcGroup::from_curve_name(Nid::SECP256K1).unwrap(); 
+  let mut ctx = BigNumContext::new().unwrap();
 
-  //let result = worker(vanity, pair.clone());
-  //let a = "1GGZnReKybChriBrvxEDWsQqQJBLQHvRzW";
-  //println!("{:?}", base58::to_bytes(a));
-  let elapsed = time::get_time() - start;
-  //println!("Found {}\n{}/sec ", result.0, result.1 * 1000 / (1+elapsed.num_milliseconds() as usize));
-  //println!("prv key = {:?}", result.1.private_key().to_vec());
-  //println!("wif = {}", address::wif(key.private_key().to_vec()));
-  //println!("{} => \n{:?}", addr, base58::from_bytes(base58::to_bytes(&addr)));
+  let mut total_tries = 0;
+  for (i, e) in handles.into_iter().enumerate() {
+    let result = e.join().unwrap();
+    total_tries += result.1;
+    match result.0 {
+      Some(r) => { 
+        println!("thread {} found ADDR: {}", i, address::p2pkh(&r.public_key().to_bytes(&group, 
+          PointConversionForm::COMPRESSED, &mut ctx).unwrap()));
+        println!("WIF: {}", address::wif(r.private_key().to_vec()));
+      },
+      // The thread didnt find the address 
+      None    => continue,
+    }
+  }
+  println!("{:?}", total_tries);
+
+  let elapsed = (time::get_time() - start).num_milliseconds() as f64 / 1000.0;
+  println!("Rate {}/thread/sec", total_tries as f64 / threads as f64 / elapsed);
 }
 
-fn worker(vanity: String, pair: Arc<(Mutex<bool>, Condvar)>) -> (String, usize) {
+fn worker(vanity: String, pair: Arc<(Mutex<bool>, Condvar)>) -> (Option<EcKey<Private>>, usize) {
 
+  // TODO pass in...
   let group = EcGroup::from_curve_name(Nid::SECP256K1).unwrap(); 
   let mut ctx = BigNumContext::new().unwrap();
   let &(ref lock, ref cvar) = &*pair;
@@ -99,11 +111,10 @@ fn worker(vanity: String, pair: Arc<(Mutex<bool>, Condvar)>) -> (String, usize) 
     if vanity == cmp {
       *lock.lock().unwrap() = true;
       cvar.notify_all();
-      // TODO return key not addr
-      return (addr.clone(), i);
+      return (Some(key.clone()), i);
     }
     if *lock.lock().unwrap() {
-      return (String::new(), i)
+      return (None, i);
     }
   }
 }
