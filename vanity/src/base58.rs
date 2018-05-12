@@ -51,6 +51,7 @@ pub fn to_bytes(s: &str) -> Vec<u8> {
   let mut n = BigNum::from_u32(0).unwrap(); 
 
   // TODO make static?
+  // TODO check for invalid chars
   let lookup = base58_lookup(DIGITS_BTC);
   // loop over str
   for c in s.chars() {

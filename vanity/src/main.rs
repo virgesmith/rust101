@@ -2,6 +2,8 @@ extern crate openssl;
 extern crate time;
 
 use std::env;
+use std::thread;
+use std::sync::{Arc, Mutex, Condvar};
 use openssl::ec::{EcKey,EcGroup,PointConversionForm};
 use openssl::nid::Nid;
 use openssl::bn::BigNumContext;
@@ -10,6 +12,25 @@ mod hash;
 mod base58;
 mod address;
 
+// fn f(j: usize, pair: Arc<(Mutex<bool>, Condvar)>) -> usize {
+//   println!("started thread {}", j);
+//   let &(ref lock, ref cvar) = &*pair;
+//   if j == 1 {
+//     *lock.lock().unwrap() = true;
+//     cvar.notify_all();
+//   }
+//   loop {
+//     thread::sleep(std::time::Duration::from_millis(1000 as u64));
+
+//     if *lock.lock().unwrap() {
+//       break;
+//     }
+//   }
+//   println!("stopped thread {}", j);
+//   j+1
+// }
+
+
 fn main() {
 
   let args: Vec<String> = env::args().collect();
@@ -17,19 +38,49 @@ fn main() {
 
   openssl::init();
 
-  if args.len() < 2 {
-    println!("usage: vanity <pattern>");
+  if args.len() < 3 {
+    println!("usage: vanity <pattern> <threads>");
     return;
   } 
 
   let vanity = &args[1];
-  println!("finding key for BTC address starting with {}...", vanity);
+  let threads = args[2].parse::<usize>().unwrap();
+  println!("finding key for BTC address starting with {} using {} threads...", vanity, threads);
+
+  let start = time::get_time();
+
+  let pair = Arc::new((Mutex::new(false), Condvar::new()));
+
+  // spawn threads here
+  let mut handles = vec![];
+  for _ in 0..threads {
+    let p = pair.clone();
+    let v = vanity.clone();
+    handles.push( thread::spawn(move || { worker(v, p) }));
+  }
+
+  for (_, e) in handles.into_iter().enumerate() {
+    println!("{:?}", e.join().unwrap());
+  }
+
+  //let result = worker(vanity, pair.clone());
+  //let a = "1GGZnReKybChriBrvxEDWsQqQJBLQHvRzW";
+  //println!("{:?}", base58::to_bytes(a));
+  let elapsed = time::get_time() - start;
+  //println!("Found {}\n{}/sec ", result.0, result.1 * 1000 / (1+elapsed.num_milliseconds() as usize));
+  //println!("prv key = {:?}", result.1.private_key().to_vec());
+  //println!("wif = {}", address::wif(key.private_key().to_vec()));
+  //println!("{} => \n{:?}", addr, base58::from_bytes(base58::to_bytes(&addr)));
+}
+
+fn worker(vanity: String, pair: Arc<(Mutex<bool>, Condvar)>) -> (String, usize) {
 
   let group = EcGroup::from_curve_name(Nid::SECP256K1).unwrap(); 
   let mut ctx = BigNumContext::new().unwrap();
+  let &(ref lock, ref cvar) = &*pair;
 
   let mut i = 0;
-  let start = time::get_time();
+
   loop {
 
     let key = EcKey::generate(&group).unwrap();
@@ -46,16 +97,15 @@ fn main() {
     //println!("{}", a);
     i += 1;
     if vanity == cmp {
-      let elapsed = time::get_time() - start;
-      println!("Found {}\n{}/sec ", addr, i * 1000 / (1+elapsed.num_milliseconds()));
-      println!("prv key = {:?}", key.private_key().to_vec());
-      println!("wif = {}", address::wif(key.private_key().to_vec()));
-      println!("{} => \n{:?}", addr, base58::from_bytes(base58::to_bytes(&addr)));
-      break;
+      *lock.lock().unwrap() = true;
+      cvar.notify_all();
+      // TODO return key not addr
+      return (addr.clone(), i);
+    }
+    if *lock.lock().unwrap() {
+      return (String::new(), i)
     }
   }
-  //let a = "1GGZnReKybChriBrvxEDWsQqQJBLQHvRzW";
-  //println!("{:?}", base58::to_bytes(a));
 }
 
 
