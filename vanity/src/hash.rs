@@ -12,3 +12,5 @@ pub fn hash256(data: &[u8]) -> [u8; 32] {
   sha::sha256(&sha::sha256(&data[..]))
 }
 
+// TODO tests
+

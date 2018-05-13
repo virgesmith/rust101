@@ -51,14 +51,43 @@ pub fn to_bytes(s: &str) -> Vec<u8> {
   let mut n = BigNum::from_u32(0).unwrap(); 
 
   // TODO make static?
-  // TODO check for invalid chars
   let lookup = base58_lookup(DIGITS_BTC);
   // loop over str
   for c in s.chars() {
     let v = lookup[c as usize];
+    // TODO check for invalid chars
+    // if v == 255u8 {
+    //   Err()
+    // }
     let _ = n.mul_word(base);
     let _ = n.add_word(v as u32); 
     //println!("{}", n/*, s[i]*/);
   }
   n.to_vec()
+}
+
+#[cfg(test)]
+mod tests {
+  use base58;
+  #[test]
+  fn test1() {
+
+    let bytes : [u8; 32] = [0x94, 0x19, 0x9c, 0x35, 0xc8, 0x84, 0x8e, 0x03, 0xe9, 0xcb, 0x43, 0x80, 0xef, 0x71, 0x2b, 0xc0, 
+                            0x77, 0xa5, 0x99, 0x1f, 0xa0, 0xbb, 0xf2, 0xc4, 0xa4, 0x0b, 0x03, 0x53, 0xe3, 0xad, 0x6c, 0x27];
+
+    let encoded = base58::from_bytes(bytes.to_vec());
+    assert_eq!(encoded, "Ay7zNBc5FhxKVaEUvcestTchSzbJtie96iwEUi5Hb32N");
+    let decoded = base58::to_bytes(&encoded);
+    assert_eq!(decoded[0], bytes[0]);
+    
+  }
+
+  // fn test2() {
+  //   let invalid = "Invalid";
+  //   match base58::to_bytes(invalid) {
+  //     Ok(_) => assert!(false, "error expected"),
+  //     Err(_) => assert!(true),
+  //   }
+  // }
+  
 }
