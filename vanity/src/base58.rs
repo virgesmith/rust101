@@ -1,6 +1,6 @@
 use openssl::bn::{BigNum,BigNumContext};
 
-pub static DIGITS_BTC: &'static str = 
+pub const DIGITS_BTC: &'static str = 
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 
@@ -37,33 +37,33 @@ pub fn from_bytes(b: Vec<u8>) -> String {
 
 fn base58_lookup(digits: &str) -> [u8; 256] {
   let invalid: u8 = 255;
-  let mut lookup: [u8;256] = [invalid; 256];
+  let mut alookup: [u8;256] = [invalid; 256];
 
   for (i, c) in digits.chars().enumerate() {
-    lookup[c as usize] = i as u8;
+    alookup[c as usize] = i as u8;
   }
-  lookup
+  alookup
 }
 
-
-pub fn to_bytes(s: &str) -> Vec<u8> {
+pub fn to_bytes(s: &str) -> Result<Vec<u8>, String> {
   let base = 58; 
   let mut n = BigNum::from_u32(0).unwrap(); 
 
   // TODO make static?
   let lookup = base58_lookup(DIGITS_BTC);
+
   // loop over str
   for c in s.chars() {
     let v = lookup[c as usize];
-    // TODO check for invalid chars
-    // if v == 255u8 {
-    //   Err()
-    // }
+    // check for invalid chars
+    if v == 255u8 {
+      return Err("invalid character in base58".to_string());
+    }
     let _ = n.mul_word(base);
     let _ = n.add_word(v as u32); 
     //println!("{}", n/*, s[i]*/);
   }
-  n.to_vec()
+  Ok(n.to_vec())
 }
 
 #[cfg(test)]
@@ -77,17 +77,19 @@ mod tests {
 
     let encoded = base58::from_bytes(bytes.to_vec());
     assert_eq!(encoded, "Ay7zNBc5FhxKVaEUvcestTchSzbJtie96iwEUi5Hb32N");
-    let decoded = base58::to_bytes(&encoded);
+    let decoded = base58::to_bytes(&encoded).unwrap();
     assert_eq!(decoded[0], bytes[0]);
     
   }
 
-  // fn test2() {
-  //   let invalid = "Invalid";
-  //   match base58::to_bytes(invalid) {
-  //     Ok(_) => assert!(false, "error expected"),
-  //     Err(_) => assert!(true),
-  //   }
-  // }
+  #[test]
+  fn test2() {
+    let invalid = "Invalid";
+    //let invalid = "1nva11d"; causes fail
+    match base58::to_bytes(invalid) {
+      Ok(_) => assert!(false, "error expected"),
+      Err(_) => assert!(true),
+    }
+  }
   
 }

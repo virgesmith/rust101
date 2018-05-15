@@ -45,5 +45,4 @@ mod tests {
     let w = address::wif(prvkey.to_vec());
     assert_eq!(w, "L2Bbdwmcs188qfBWjhGi95P6sxVeGbvS1zQsnvpcAc4h1864jJXD");    
   }
-  
 }
