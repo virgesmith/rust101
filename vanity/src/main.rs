@@ -30,8 +30,6 @@ mod address;
 //   j+1
 // }
 
-//type AddressResult = (usize, Option<EcKey<Private>>);
-
 fn main() {
 
   let args: Vec<String> = env::args().collect();
@@ -45,6 +43,11 @@ fn main() {
   } 
 
   let vanity = &args[1];
+
+  if !base58::is_valid(vanity) {
+    println!("{} is not a valid base 58 number (using the BTC alphabet)", vanity);
+    return;
+  }
 
   let threads = match args[2].parse::<usize>() {
     Ok(0) => { println!("zero threads requested, actually using 1 thread"); 1 },

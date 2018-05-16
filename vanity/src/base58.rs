@@ -4,6 +4,21 @@ pub const DIGITS_BTC: &'static str =
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 
+pub fn is_valid(digits: &str) -> bool {
+  // TODO make static?
+  let lookup = base58_lookup(DIGITS_BTC);
+
+  for c in digits.chars() {
+    let v = lookup[c as usize];
+    // check for invalid chars
+    if v == 255u8 {
+      //return Err("invalid character in base58".to_string());
+      return false;
+    }
+  }
+  true
+}
+
 pub fn from_bytes(b: Vec<u8>) -> String {
   if b.len() == 0 {
     () //String::from("")
@@ -84,8 +99,12 @@ mod tests {
 
   #[test]
   fn test2() {
+    let valid = "Va11d";
     let invalid = "Invalid";
-    //let invalid = "1nva11d"; causes fail
+
+    assert!(base58::is_valid(valid));
+    assert!(!base58::is_valid(invalid));
+
     match base58::to_bytes(invalid) {
       Ok(_) => assert!(false, "error expected"),
       Err(_) => assert!(true),
