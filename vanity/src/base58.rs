@@ -61,6 +61,12 @@ fn base58_lookup(digits: &str) -> [u8; 256] {
 }
 
 pub fn to_bytes(s: &str) -> Result<Vec<u8>, String> {
+
+  // check for invalid chars
+  if !is_valid(s) {
+    return Err("invalid character in base58".to_string());
+  }
+
   let base = 58; 
   let mut n = BigNum::from_u32(0).unwrap(); 
 
@@ -70,10 +76,6 @@ pub fn to_bytes(s: &str) -> Result<Vec<u8>, String> {
   // loop over str
   for c in s.chars() {
     let v = lookup[c as usize];
-    // check for invalid chars
-    if v == 255u8 {
-      return Err("invalid character in base58".to_string());
-    }
     let _ = n.mul_word(base);
     let _ = n.add_word(v as u32); 
     //println!("{}", n/*, s[i]*/);

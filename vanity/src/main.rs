@@ -33,15 +33,13 @@ mod address;
 fn main() {
 
   let args: Vec<String> = env::args().collect();
-  //println!("{:?}", args);
-
-  openssl::init();
 
   if args.len() < 3 {
     println!("usage: vanity <pattern> <threads>");
     return;
   } 
 
+  // TODO prefix 1 for consistency
   let vanity = &args[1];
 
   if !base58::is_valid(vanity) {
@@ -49,11 +47,14 @@ fn main() {
     return;
   }
 
+  // TODO dont allow silly values u8?
   let threads = match args[2].parse::<usize>() {
     Ok(0) => { println!("zero threads requested, actually using 1 thread"); 1 },
     Ok(n) => n,
     Err(e) => { println!("invalid threads arg: {}", e); return; }
   };
+
+  openssl::init();
 
   println!("finding key for BTC address starting with {} using {} threads...", vanity, threads);
 
