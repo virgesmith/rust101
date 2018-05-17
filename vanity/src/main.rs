@@ -93,9 +93,9 @@ fn main() {
       None => continue,
     }
   }
-  println!("{:?}", total_tries);
-
   let elapsed = (time::get_time() - start).num_milliseconds() as f64 / 1000.0;
+  println!("{} attempts in {} seconds", total_tries, elapsed);
+
   println!("Rate {}/thread/sec", total_tries as f64 / threads as f64 / elapsed);
 }
 
@@ -111,7 +111,8 @@ fn worker(vanity: String, pair: Arc<(Mutex<bool>, Condvar)>) -> (Option<EcKey<Pr
   loop {
 
     let key = EcKey::generate(&group).unwrap();
-    assert!(key.check_key().unwrap() == ()); // returns Result<(), ErrorStack>
+    // this slows things down massively
+    //assert!(key.check_key().unwrap() == ()); // returns Result<(), ErrorStack>
     let bytes = key.public_key().to_bytes(&group, PointConversionForm::COMPRESSED, &mut ctx).unwrap();
 
     let addr = address::p2pkh(&bytes);
@@ -127,5 +128,3 @@ fn worker(vanity: String, pair: Arc<(Mutex<bool>, Condvar)>) -> (Option<EcKey<Pr
     }
   }
 }
-
-
