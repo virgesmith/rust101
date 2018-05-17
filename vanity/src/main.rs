@@ -39,7 +39,7 @@ fn main() {
     return;
   } 
 
-  // TODO prefix 1 for consistency
+  // assumed P2PKH prefix 1 (for consistency with C++ impl)
   let vanity = &args[1];
 
   if !base58::is_valid(vanity) {
@@ -47,12 +47,18 @@ fn main() {
     return;
   }
 
-  // TODO dont allow silly values u8?
-  let threads = match args[2].parse::<usize>() {
+  // be realistic: 58^8 > ~1e14
+  if vanity.len() > 7 {
+    println!("{} is too long to realistically find a matching address", vanity);
+    return;    
+  }
+
+  // Use u8 to ensure thread <= 256. Is there a better way?
+  let threads: usize = match args[2].parse::<u8>() {
     Ok(0) => { println!("zero threads requested, actually using 1 thread"); 1 },
     Ok(n) => n,
     Err(e) => { println!("invalid threads arg: {}", e); return; }
-  };
+  } as usize;
 
   openssl::init();
 
@@ -84,7 +90,7 @@ fn main() {
         println!("WIF: {}", address::wif(r.private_key().to_vec()));
       },
       // The thread didnt find the address 
-      None    => continue,
+      None => continue,
     }
   }
   println!("{:?}", total_tries);
@@ -109,7 +115,7 @@ fn worker(vanity: String, pair: Arc<(Mutex<bool>, Condvar)>) -> (Option<EcKey<Pr
     let bytes = key.public_key().to_bytes(&group, PointConversionForm::COMPRESSED, &mut ctx).unwrap();
 
     let addr = address::p2pkh(&bytes);
-    let cmp = &addr[..vanity.len()];
+    let cmp = &addr[1..vanity.len()+1];
     i += 1;
     if vanity == cmp {
       *lock.lock().unwrap() = true;
