@@ -22,22 +22,23 @@ fn abs(x : i8) -> Result<i8, String> {
 //struct c64 { r: f64, i: f64 }
 
 #[derive(Debug)]
-enum Number<T> {
+enum Number<T> where T: Into<f64> {
   R(T),
-  C(T, T),
+  C{ r: T, i: T},
+  // TODO +/-inf for comparison and closer to IEEE754
   Inf()
 }
 
 fn sqrt(x: f64) -> Number<f64> {
   match x {
-    x if x < 0.0 => Number::C(0.0, (-x).sqrt()),
+    x if x < 0.0 => Number::C{ r:0.0, i: (-x).sqrt() },
     _ => Number::R(x.sqrt()) // sqrt is a "member" weird!
   }
 }
 
 fn ln(x: f64) -> Number<f64> {
   match x {
-    x if x < 0.0 => Number::C((-x).ln(), std::f64::consts::PI),
+    x if x < 0.0 => Number::C{ r: (-x).ln(), i: std::f64::consts::PI },
     x if x == 0.0 => Number::Inf(),
     _ => Number::R(x.ln()) // weird!
   }
