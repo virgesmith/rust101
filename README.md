@@ -64,7 +64,7 @@ Similarly, if we wanted to permit our transcendental functions to operate on the
 enum Number<T> where T: Into<f64> {
   R(T),
   C{ r: T, i: T},
-  Inf()
+  Inf(bool) // sign bit, true means negative
 }
 ```
 where
@@ -77,17 +77,17 @@ So for `sqrt` its either real or imaginary, depending on sign:
 fn sqrt(x: f64) -> Number<f64> {
   match x {
     x if x < 0.0 => Number::C{ r:0.0, i: (-x).sqrt() },
-    _ => Number::R(x.sqrt()) // sqrt is a "member" weird!
+    _ => Number::R(x.sqrt()) // sqrt is a "member"
   }
 }
 ```
-and for logarithm, the result is (minus) infinite for zero and complex for negative inputs. 
-```
+and for logarithm, the result is negative infinity for zero, complex for negative input, otherwise real.
+```rust
 fn ln(x: f64) -> Number<f64> {
   match x {
     x if x < 0.0 => Number::C{ r: (-x).ln(), i: std::f64::consts::PI },
     x if x == 0.0 => Number::Inf(),
-    _ => Number::R(x.ln()) // weird!
+    _ => Number::R(x.ln())
   }
 }
 ```
@@ -96,8 +96,8 @@ fn ln(x: f64) -> Number<f64> {
 
 Clarity: yes, once you get your head round the concept.
 
-Performance: I don't know yet! TODO Profile/disassembler comparisons of the C++ (above) and rust. 
+Performance: I don't know yet! TODO Profile/disassembler comparisons of the C++ (above) and rust. Since the check must be a runtime one, I can't see how it could outperform a (clever) C++ implementation (one that doesn't use exceptions and the accompanying baggage).
 
-Since the check must be a runtime one, I can't see how it could outperform a (clever) C++ implementation. 
+Usability: not sure. I'm not experienced enough with rust. The returned type needs to be unwrapped, or math functions need to be provided that accept a Number<>? unwrapping into the wrong type will result in a panic.
 
 

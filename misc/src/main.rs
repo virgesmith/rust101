@@ -1,15 +1,4 @@
 
-//use std::num;
-
-// fn first_word(s: &String) -> &str {
-//   let bytes = s.as_bytes();
-//   for (i, &item) in bytes.iter().enumerate() {
-//     if item == b' ' {
-//       return &s[0..i];
-//     }
-//   }
-//   &s[..]
-// }
 
 fn abs(x : i8) -> Result<i8, String> {
   match x {
@@ -19,49 +8,73 @@ fn abs(x : i8) -> Result<i8, String> {
   }
 }
 
-//struct c64 { r: f64, i: f64 }
+#[derive(Debug)]
+pub struct Cplx<T> { r: T, i: T }
 
 #[derive(Debug)]
-enum Number<T> where T: Into<f64> {
+pub enum Number<T> /*where T: Into<f64>*/ {
   R(T),
-  C{ r: T, i: T},
+  C(Cplx<T>),
   // TODO +/-inf for comparison and closer to IEEE754
-  Inf()
+  Inf(bool) // sign bit (true means -ve)
 }
+
+impl<T> Number<T> {
+  pub fn r(self) -> T {
+    match self {
+      Number::R(val) => val,
+      Number::C(_) => panic!("complex!"),
+      Number::Inf(_) => panic!("infinite!")
+    }
+  }
+  // // can we overload?
+  // pub fn cunwrap(self) -> Cplx<T> {
+  //   match self {
+  //     Number::R(val) => Cplx{r: val, i: 0.0},
+  //     Number::C(cval) => cval,
+  //     Number::Inf(_) => panic!("infinite!")
+  //   }
+  // }
+}
+
+use Number::R;
 
 fn sqrt(x: f64) -> Number<f64> {
   match x {
-    x if x < 0.0 => Number::C{ r:0.0, i: (-x).sqrt() },
-    _ => Number::R(x.sqrt()) // sqrt is a "member" weird!
+    x if x < 0.0 => Number::C(Cplx{r:0.0, i: (-x).sqrt() }),
+    _ => Number::R(x.sqrt()) // sqrt is a "member" 
   }
 }
 
 fn ln(x: f64) -> Number<f64> {
   match x {
-    x if x < 0.0 => Number::C{ r: (-x).ln(), i: std::f64::consts::PI },
-    x if x == 0.0 => Number::Inf(),
-    _ => Number::R(x.ln()) // weird!
+    x if x < 0.0 => Number::C(Cplx{ r: (-x).ln(), i: std::f64::consts::PI }),
+    x if x == 0.0 => Number::Inf(true),
+    _ => Number::R(x.ln()) 
   }
 }
 
 fn main() {
-  let mut a = [1,2,3,4,5,6,7,8];
-
-  let mut s = &a[2..5];
-
-  //s[0] = 9;
-  //s.clear(); // Error!
-  println!("{:?}", a);
   println!("{:?}", abs(0));
   println!("{:?}", abs(10));
   println!("{:?}", abs(-10));
   println!("{:?}", abs(-128));
 
   println!("{:?}", sqrt(-64.));
-  println!("{:?}", sqrt(256.));
+  println!("{:?}", sqrt(256.).r());
 
   println!("{:?}", ln(-256.));
   println!("{:?}", ln(0.));
   println!("{:?}", ln(-0.));
   println!("{:?}", ln(256.));
+
+  //let x: f64 = ln(-1.0); // compile-time error!
+
+  let x: f64 = ln(0.1).r();
+  println!("{}", x);
+  //let x: f64 = ln(x).R(); // panics 
+  let z/*: Cplx<f64>*/ = ln(x);
+  println!("{:?}", z);
+
+  let y = Number<f64>::R;
 }
