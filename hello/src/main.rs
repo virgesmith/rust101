@@ -3,8 +3,7 @@ use std::io::prelude::*;
 use std::net::TcpListener;
 use std::net::TcpStream;
 use std::fs::File;
-use std::thread;
-use std::time::Duration;
+use std::path::Path;
 
 extern crate threadpool;
 use threadpool::ThreadPool;
@@ -22,17 +21,26 @@ fn main() {
 fn handle_connection(mut stream: TcpStream) {
   let mut buffer = [0; 512];
   stream.read(&mut buffer).unwrap();
-  let get = b"GET / HTTP/1.1\r\n";
-  let sleep = b"GET /sleep HTTP/1.1\r\n";
+  let get = "GET";// / HTTP/1.1\r\n";
+  //let post = "POST"; // / HTTP/1.1\r\n";
+  let req = String::from_utf8_lossy(&buffer);
+  let mut header = req.lines().next().unwrap().split(' ');
+  let cmd = header.next().unwrap();
+  let file = format!(".{}", header.next().unwrap());
+  println!("{}:{}", cmd, file);
 
-  let (status_line, filename) = if buffer.starts_with(get) {
-    ("HTTP/1.1 200 OK\r\n\r\n", "hello.html")
-  } else if buffer.starts_with(sleep) {
-    thread::sleep(Duration::from_secs(5));
-    ("HTTP/1.1 200 OK\r\n\r\n", "hello.html")
+  let (status_line, filename) = if cmd == get && Path::new(&file).is_file() {
+  // if file exists...
+    ("HTTP/1.1 200 OK\r\n\r\n", file)
   } else {
-    ("HTTP/1.1 404 NOT FOUND\r\n\r\n", "404.html")
+    ("HTTP/1.1 404 NOT FOUND\r\n\r\n", "./404.html".to_owned())
   };
+  // } else if cmd == post {
+  //   ("HTTP/1.1 200 OK\r\n\r\n", "post.html")
+  // } else {
+  //   ("HTTP/1.1 404 NOT FOUND\r\n\r\n", "404.html")
+  
+  println!("{}", filename);
   let mut file = File::open(filename).unwrap();
   let mut contents = String::new();
   file.read_to_string(&mut contents).unwrap();
