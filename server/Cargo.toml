@@ -5,5 +5,3 @@ authors = []
 
 [dependencies]
 simple-server = "*"
-#env_logger = "*"
-#log = "*"

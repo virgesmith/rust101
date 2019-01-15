@@ -1,3 +1,7 @@
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
+use std::sync::{Arc, Mutex};
 extern crate simple_server;
 
 use simple_server::{Method, Server, StatusCode};
@@ -11,11 +15,25 @@ fn main() {
 
     match request.method() {
       &Method::GET => {
-        Ok(response.body(format!("<h1>Hi!</h1><p>GET .{}</p>\n", request.uri().path()).as_bytes().to_vec())?)
+        let filename = format!("public{}", request.uri().path());
+        if Path::new(&filename).is_file() {
+          let mut file = File::open(filename)?;  //.unwrap());
+          let mut content = Vec::new();
+          // read the whole file
+          file.read_to_end(&mut content)?;
+          Ok(response.body(content)?)
+        } else {
+          response.status(StatusCode::NOT_FOUND);
+          Ok(response.body("<h1>404</h1><p>Not found!<p>\n".as_bytes().to_vec())?)
+        }
       }
       &Method::POST => {
-        println!("{}", String::from_utf8_lossy(request.body()));
-        Ok(response.body(format!("<h1>Hi!</h1><p>Post .{}</p>\n", request.uri().path()).as_bytes().to_vec())?)
+        let mut f = File::create(format!("public{}", request.uri().path()))?;
+        // TODO file-specific mutex
+        let _lock = Arc::new(Mutex::new(0));
+        f.write_all(request.body())?;
+        f.sync_data()?;
+        Ok(response.body(format!("<p>POST: .{}</p>\n", request.uri().path()).as_bytes().to_vec())?)
       }
       _ => {
         response.status(StatusCode::NOT_FOUND);
