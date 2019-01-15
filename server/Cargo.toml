@@ -1,0 +1,9 @@
+[package]
+name = "server"
+version = "0.1.0"
+authors = []
+
+[dependencies]
+simple-server = "*"
+#env_logger = "*"
+#log = "*"
