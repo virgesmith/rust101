@@ -3,5 +3,5 @@ name = "vanity"
 version = "0.1.0"
 
 [dependencies]
-openssl = "*"
-time = "*"
+openssl = "^0.10.16"
+time = "^0.1.41"

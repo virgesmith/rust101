@@ -60,6 +60,7 @@ fn base58_lookup(digits: &str) -> [u8; 256] {
   alookup
 }
 
+#[allow(dead_code)]
 pub fn to_bytes(s: &str) -> Result<Vec<u8>, String> {
 
   // check for invalid chars

@@ -34,7 +34,7 @@ fn main() {
 
   let args: Vec<String> = env::args().collect();
 
-  if args.len() < 3 {
+  if args.len() < 2 || args.len() > 3 {
     println!("usage: vanity <pattern> <threads>");
     return;
   } 
@@ -53,16 +53,20 @@ fn main() {
     return;    
   }
 
-  // Use u8 to ensure thread <= 256. Is there a better way?
-  let threads: usize = match args[2].parse::<u8>() {
-    Ok(0) => { println!("zero threads requested, actually using 1 thread"); 1 },
-    Ok(n) => n,
-    Err(e) => { println!("invalid threads arg: {}", e); return; }
+  // Use u8 to ensure threads <= 256, defaulting to 1
+  let threads: usize = if args.len() == 3 { 
+    match args[2].parse::<u8>() {
+      Ok(0) => { println!("zero threads requested, actually using 1 thread"); 1 },
+      Ok(n) => n,
+      Err(e) => { println!("invalid threads arg: {}", e); return; }
+    }
+  } else {
+    1 
   } as usize;
 
   openssl::init();
 
-  println!("finding key for BTC address starting with {} using {} threads...", vanity, threads);
+  println!("finding key for BTC P2PKH address starting with 1{} using {} threads...", vanity, threads);
 
   let start = time::get_time();
 
