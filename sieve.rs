@@ -1,11 +1,11 @@
 // 
 
 // advance to the next prime for sieving
-fn next(mut i: usize, p: &Vec<bool>) -> usize {
-  loop {
-    i += 1;
-    if i >= p.len() || p[i] { return i; }
-  }    
+fn next(idx: usize, p: &Vec<bool>) -> Option<usize> {
+  for i in idx+1..p.len() {
+    if p[i] { return Some(i); }
+  }
+  None    
 }
 
 fn sieve(n: usize) -> Vec<bool> {
@@ -22,7 +22,7 @@ fn sieve(n: usize) -> Vec<bool> {
       p[c] = false;
       c += i;
     } 
-    i = next(i, &p);     
+    i = next(i, &p).unwrap();     
   }
   return p;
 }
@@ -54,13 +54,14 @@ fn main() {
   let mut primes = Vec::new();
 
   // reserve space based on num primes in [0,n] ~= n/ln(n)
+  // TODO if m=1 cap overflows
   let cap = ((n as f64 / (n as f64).ln() - (m as f64 / (m as f64).ln())) * 1.15) as usize + 1;
   primes.reserve(cap);
 
   for (i,p) in isprime.iter().enumerate() {
     if i >= m && *p { primes.push(i); }
   }
-  println!("reserved for {}, got {} primes", cap, primes.len());
+  //println!("reserved for {}, got {} primes", cap, primes.len());
   println!("{:?}", primes);
   // by default returns 0 to OS
 }
