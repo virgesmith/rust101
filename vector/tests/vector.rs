@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-  use vector::Vector;
+  use vector::{Vector, dot, cross, parallel, perpendicular};
 
   fn are_equal(a: f64, b: f64) -> bool {
     (a - b).abs() < 0.000001
@@ -20,16 +20,19 @@ mod tests {
   }
 
   #[test]
-  fn get_magnitude_test() {
+  fn modulus_test() {
     let v = Vector::new(6.0, 10.0, -3.0);
-    assert!(are_equal(v.get_magnitude(), (145 as f64).sqrt()));
+    assert!(are_equal(v.modulus(), (145 as f64).sqrt()));
+    // note operator precedence here
+    assert!(are_equal(-v.modulus(), -(145 as f64).sqrt()));
+    assert!(are_equal((-v).modulus(), (145 as f64).sqrt()));
   }
 
   #[test]
   fn static_methods_test() {
-    let i = Vector::get_i();
-    let j = Vector::get_j();
-    let k = Vector::get_k();
+    let i = Vector::unit_i();
+    let j = Vector::unit_j();
+    let k = Vector::unit_k();
     assert_eq!(1.0, i.i);
     assert_eq!(0.0, i.j);
     assert_eq!(0.0, i.k);
@@ -42,35 +45,43 @@ mod tests {
   }
 
   #[test]
-  fn add_test() {
+  fn addsub_test() {
     let v = Vector::new(3.0, 7.0 / 2.0, -3.0 / 2.0);
-    let s: Vector = v.add(&Vector::new(-27.0, 3.0, 4.0));
+    let s: Vector = v + &Vector::new(-27.0, 3.0, 4.0);
     assert!(are_equal(s.i, -24.0));
     assert!(are_equal(s.j, 13.0 / 2.0));
     assert!(are_equal(s.k, 5.0 / 2.0));
+    let s: Vector = s - &Vector::new(-27.0, 3.0, 4.0);
+    assert!(are_equal(s.i, 3.0));
+    assert!(are_equal(s.j, 7.0 / 2.0));
+    assert!(are_equal(s.k, -3.0 / 2.0));
   }
 
   #[test]
-  fn multiply_test() {
+  fn muldiv_test() {
     let v = Vector::new(1.0 / 3.0, 177.0 / 27.0, -99.0);
-    let e = v.multiply_by_scalar(-3.0 / 7.0);
+    let e = v * (-3.0 / 7.0);
     assert!(are_equal(e.i, -1.0 / 7.0));
     assert!(are_equal(e.j, -59.0 / 21.0));
     assert!(are_equal(e.k, 297.0 / 7.0));
+    let e = e / (-3.0 / 7.0);
+    assert!(are_equal(e.i, 1.0 / 3.0));
+    assert!(are_equal(e.j, 177.0 / 27.0));
+    assert!(are_equal(e.k, -99.0));
   }
 
   #[test]
   fn dot_test() {
     let v = Vector::new(-99.0 / 71.0, 22.0 / 23.0, 45.0);
-    assert!(are_equal(v.dot(&Vector::new(-5.0, 4.0, 7.0)), 325.7979179));
+    assert!(are_equal(dot(&v, &Vector::new(-5.0, 4.0, 7.0)), 325.7979179));
   }
 
   #[test]
   fn cross_test() {
     let a = Vector::new(2.0, 1.0, 3.0);
     let b = Vector::new(4.0, 6.0, 5.0);
-    let a_cross_b = a.cross(&b);
-    let b_cross_a = b.cross(&a);
+    let a_cross_b = cross(&a, &b);
+    let b_cross_a = cross(&b, &a);
     assert!(are_equal(a_cross_b.i, -13.0));
     assert!(are_equal(a_cross_b.j, 2.0));
     assert!(are_equal(a_cross_b.k, 8.0));
@@ -83,32 +94,32 @@ mod tests {
   fn parallel_test() {
     let a = Vector::new(1045.0 / 23.0, -666.0 / 37.0, 15.0);
     let b = Vector::new(161.3385037, -59124.0 / 925.0, 9854.0 / 185.0);
-    assert!(a.is_parallel_to(&b));
-    assert!(b.is_parallel_to(&a));
+    assert!(parallel(&a, &b));
+    assert!(parallel(&b, &a));
     let c = Vector::new(-3.0, 0.0, 5.0);
     let d = Vector::new(-12.0, 1.0, 20.0);
-    assert!(!c.is_parallel_to(&d));
-    assert!(!d.is_parallel_to(&c));
+    assert!(!parallel(&c, &d));
+    assert!(!parallel(&d, &c));
   }
 
   #[test]
   fn perpendicular_test() {
     let a = Vector::new(3.0, 4.0, 7.0);
     let b = Vector::new(1.0 / 3.0, 2.0, -9.0 / 7.0);
-    assert!(a.is_perpendicular_to(&b));
-    assert!(b.is_perpendicular_to(&a));
+    assert!(perpendicular(&a, &b));
+    assert!(perpendicular(&b, &a));
     let c = Vector::new(1.0, 3.0, 5.0);
     let d = Vector::new(-2.0, -7.0, 4.4);
-    println!("{:?}", c.dot(&d));
-    assert!(!c.is_perpendicular_to(&d));
-    assert!(!d.is_perpendicular_to(&c));
+    println!("{:?}", dot(&c, &d));
+    assert!(!perpendicular(&c, &d));
+    assert!(!perpendicular(&d, &c));
   }
 
   #[test]
   fn normalize_test() {
     let v = Vector::new(-1.0, -1.0, 1.0);
     let u = v.normalize();
-    assert!(are_equal(u.get_magnitude(), 1.0));
+    assert!(are_equal(u.modulus(), 1.0));
     assert!(are_equal(u.i, -1.0 / (3.0 as f64).sqrt()));
     assert!(are_equal(u.j, -1.0 / (3.0 as f64).sqrt()));
     assert!(are_equal(u.k, 1.0 / (3.0 as f64).sqrt()));
