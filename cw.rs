@@ -167,6 +167,7 @@ fn flip(d: char) -> Option<char> {
   }
 }
 
+#[allow(dead_code)]
 fn interpreter(tape: &str, data: &str) -> String {
   let tape: Vec<char> = tape.chars().collect();
   let mut data: Vec<char> = data.chars().collect();
@@ -189,9 +190,46 @@ fn interpreter(tape: &str, data: &str) -> String {
   data.into_iter().collect::<String>()
 }
 
+#[allow(dead_code)]
+fn fib(n: usize) -> u64 {
+  let mut w: [u64;2] = [0,1];
+  // keep running sum of previous 2
+  for i in 2..n+1 {
+    w[i%2] += w[(i+1)%2];
+  }
+  w[n%2]
+}
+
+//let PHI = 0.5 * (1.0 + 5.0f64.sqrt());
+
+#[allow(dead_code)]
+fn product_fib(prod: u64) -> (u64, u64, bool) {
+  let mut w: [u64;2] = [0,1];
+  let mut i = 0;
+  while w[0] * w[1] < prod {
+    w[i%2] += w[(i+1)%2];
+    i += 1;
+  }
+  (w[i%2], w[(i+1)%2], w[0] * w[1] == prod)
+}
+
+#[allow(dead_code)]
+fn sum_fib(n: usize) -> u64 {
+  let mut w: [u64;2] = [0,1];
+  let mut s = 0;
+  for i in 1..n+2 {
+    w[i%2] += w[(i+1)%2];
+    s += w[i%2];
+    //println!("{:?} {}", w, s);
+  }
+  s * 4
+}
 
 fn main() {
-  println!("{}", interpreter("10", "1010101"));  
-  println!("{}", interpreter("1010010", "1111111111"));  
-
+  println!("{:?}", sum_fib(0));
+  println!("{:?}", sum_fib(1));
+  println!("{:?}", sum_fib(5));
+  println!("{:?}", sum_fib(7));
+  println!("{:?}", sum_fib(20));
+  println!("{:?}", sum_fib(30));
 }
