@@ -225,11 +225,128 @@ fn sum_fib(n: usize) -> u64 {
   s * 4
 }
 
-fn main() {
-  println!("{:?}", sum_fib(0));
-  println!("{:?}", sum_fib(1));
-  println!("{:?}", sum_fib(5));
-  println!("{:?}", sum_fib(7));
-  println!("{:?}", sum_fib(20));
-  println!("{:?}", sum_fib(30));
+#[allow(dead_code)]
+fn dbl_linear(n: u32) -> u32 {
+  let mut u = vec![1];
+  let mut ix = 0;
+  let mut iy = 0;
+  loop {
+    let x = 2 * u[ix] + 1;
+    let y = 3 * u[iy] + 1;
+    if x <= y { 
+      if *u.last().unwrap() != x { u.push(x); }
+      ix += 1;
+    } else {
+      if *u.last().unwrap() != y { u.push(y) };
+      iy += 1;
+    }
+    if u.len() > n as usize { break; }
+  }
+  *u.last().unwrap()
 }
+
+
+fn getmin(v: &Vec<u32>) -> usize
+{
+  let mut minval = std::u32::MAX;
+  let mut mindex = 0;
+  for (i, val) in v.iter().enumerate() {
+    if *val < minval {
+      minval = *val;
+      mindex = i;
+    }
+  }
+  mindex
+}
+
+#[allow(dead_code)]
+fn n_linear(m: &[u32], n: usize) -> u32 {
+  let mut u = vec![1];
+  let mut idx = vec![0; m.len()];
+  let mut v: Vec<u32> = m.iter().map(|x| 1 + x).collect();
+  loop {
+    if u.len() > n as usize { break; }
+    let midx = getmin(&v);
+    if *u.last().unwrap() != v[midx] { u.push(v[midx]); }
+    idx[midx] += 1;
+    v[midx] = m[midx] * u[idx[midx]] + 1;
+  }
+  *u.last().unwrap()
+}
+
+
+// fn bisect(m: f64) -> f64 {
+//   let mut xl = TOL;
+//   let mut xh = 1.0 - TOL.sqrt();
+//   let mut xm;
+//   let fl = f(xl) - m;
+//   let fh = f(xh) - m;
+
+//   (fm - fl) * (xh - xl) = (fh - fl) * (xm - xl) 
+// }
+  // let mut xl = TOL;
+  // let mut xh = 1.0 - TOL.sqrt();
+  // let mut xm;
+  // loop {
+  //   let fl = f(xl) - m;
+  //   let fh = f(xh) - m;
+  //   assert!(fl * fh < 0.0);
+  //   xm = 0.5 * (xl + xh);
+  //   let fm = f(xm) - m;
+  //   if fm.abs() < TOL { break; }
+  //   // if fm same sign as fl, fl<-fm 
+  //   if fm * fl > 0.0 {
+  //     xl = xm;
+  //   } else {
+  //     xh = xm;  
+  //   }
+  //   //println!("{} {} {}", xl, xm, xh);
+  // }
+  // xm
+const TOL: f64 = 1e-12;
+
+fn f(x: f64) -> (f64, f64) {
+  assert!(x > 0.0 && x < 1.0);
+  let mut t = x;
+  let mut a = 1.0;
+  let mut sum = a * t;
+  let mut dsum = 1.0;
+  loop {
+    a += 1.0;
+    dsum += a * a * t;
+    t *= x;
+    sum += a * t;
+    if a * t < TOL { break; }
+  }
+  (sum, dsum)
+}
+
+// Newton(-Raphson)
+fn solve(m: f64) -> f64 {
+  let mut x = 0.5;
+  let mut xn;
+  loop 
+  {
+    let (f, fprime) = f(x);
+    xn = x - (f - m) / fprime;
+    if (xn - x).abs() < TOL { break; }
+    //println!("{} {}: {} -> {}", f, fprime, x, xn);
+    x = xn;
+    if x > 0.9999 { x = 0.9999; }
+  }
+  xn
+}
+
+fn testing(m: f64, expected: f64) -> () {
+  println!("{} {} {}", m, solve(m), expected);
+}
+
+fn main() {
+  testing(2.0, 0.5);
+  testing(4.0, 6.096117967978e-01);
+  testing(5.0, 6.417424305044e-01);
+  testing(8.0, 0.7034648345913732);
+  testing(10.0, 0.729843788128609);
+  testing(425589.0, 0.729843788128609);
+}
+

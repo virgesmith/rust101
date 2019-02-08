@@ -30,18 +30,14 @@ mod tests {
 
   #[test]
   fn static_methods_test() {
+    let z = Vector::zero();
     let i = Vector::unit_i();
     let j = Vector::unit_j();
     let k = Vector::unit_k();
-    assert_eq!(1.0, i.i);
-    assert_eq!(0.0, i.j);
-    assert_eq!(0.0, i.k);
-    assert_eq!(0.0, j.i);
-    assert_eq!(1.0, j.j);
-    assert_eq!(0.0, j.k);
-    assert_eq!(0.0, k.i);
-    assert_eq!(0.0, k.j);
-    assert_eq!(1.0, k.k);
+    assert_eq!(0.0, z.i);    assert_eq!(0.0, z.j);    assert_eq!(0.0, z.k);
+    assert_eq!(1.0, i.i);    assert_eq!(0.0, i.j);    assert_eq!(0.0, i.k);
+    assert_eq!(0.0, j.i);    assert_eq!(1.0, j.j);    assert_eq!(0.0, j.k);
+    assert_eq!(0.0, k.i);    assert_eq!(0.0, k.j);    assert_eq!(1.0, k.k);
   }
 
   #[test]
@@ -74,6 +70,7 @@ mod tests {
   fn dot_test() {
     let v = Vector::new(-99.0 / 71.0, 22.0 / 23.0, 45.0);
     assert!(are_equal(dot(&v, &Vector::new(-5.0, 4.0, 7.0)), 325.7979179));
+    assert!(are_equal(dot(&v, &Vector::new(5.0, -4.0, -7.0)), -325.7979179));
   }
 
   #[test]
