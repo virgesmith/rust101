@@ -322,6 +322,7 @@ fn f(x: f64) -> (f64, f64) {
 }
 
 // Newton(-Raphson)
+#[allow(dead_code)]
 fn solve(m: f64) -> f64 {
   let mut x = 0.5;
   let mut xn;
@@ -337,16 +338,32 @@ fn solve(m: f64) -> f64 {
   xn
 }
 
-fn testing(m: f64, expected: f64) -> () {
-  println!("{} {} {}", m, solve(m), expected);
+
+fn solequa(n: u64) -> Vec<(u64, u64)> {
+  let mut v = Vec::new();
+  let k = (n as f64).sqrt() as u64;
+  for a in 1..=k {
+    let b = n as f64 / a as f64;
+    if b.fract() == 0.0 {
+      let b = b as u64;
+      if (a + b) % 2 == 0 && (b - a) % 4 == 0 {
+        v.push(((a+b)/2, (b-a)/4));
+      }
+    }
+  }
+  v
+}
+
+
+fn testing(n: u64, e: Vec<(u64, u64)>) -> () {
+  println!("{}: {:?} {:?}", n, solequa(n), e);
 }
 
 fn main() {
-  testing(2.0, 0.5);
-  testing(4.0, 6.096117967978e-01);
-  testing(5.0, 6.417424305044e-01);
-  testing(8.0, 0.7034648345913732);
-  testing(10.0, 0.729843788128609);
-  testing(425589.0, 0.729843788128609);
+  testing(5, vec![(3, 1)]);
+  testing(20, vec![(6, 2)]); 
+  testing(9001, vec![(4501, 2250)]);
+  testing(9004, vec![(2252, 1125)]);
+  testing(90005, vec![(45003, 22501), (9003, 4499), (981, 467), (309, 37)]);
+  testing(90002, vec![]);
 }
-

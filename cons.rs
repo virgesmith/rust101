@@ -1,18 +1,22 @@
 #[derive(Debug, PartialEq, Eq)]
-enum Cons<T: Clone> {
-  Cons(T, Box<Cons<T>>),
-  Null
+enum List<T: Clone> {
+  Node(T, Box<List<T>>),
+  End
 }
 
-impl<T: Clone> Cons<T> {
+// use std::iter::{self, Sum};
+// use std::ops::Add;
+// use std::Zero;
+
+impl<T: Clone> List<T> {
   pub fn new(head: T, tail: Self) -> Self {
-    Cons::Cons(head, Box::new(tail))
+    List::Node(head, Box::new(tail))
   }
 
   pub fn to_vec(&self) -> Vec<T> {
     match self {
-      &Cons::Null => vec![],
-      &Cons::Cons(ref head, ref tail) => {
+      &List::End => vec![],
+      &List::Node(ref head, ref tail) => {
         let mut head = vec![head.clone()];
         head.extend(tail.to_vec());
         head
@@ -25,8 +29,8 @@ impl<T: Clone> Cons<T> {
   {
     let mut iter = it.into_iter();
     match iter.next() {
-      Some(x) => Cons::new(x, Cons::from_iter(iter)),
-      None => Cons::Null      
+      Some(x) => List::new(x, List::from_iter(iter)),
+      None => List::End      
     }
   }
 
@@ -34,35 +38,44 @@ impl<T: Clone> Cons<T> {
     where F: Fn(&T) -> bool
   {
     match self {
-      &Cons::Null => Cons::Null,
-      &Cons::Cons(ref head, ref tail) => {
+      &List::End => List::End,
+      &List::Node(ref head, ref tail) => {
         match fun(head) {
-          true => Cons::new(head.clone(), tail.filter(fun)),
+          true => List::new(head.clone(), tail.filter(fun)),
           false => tail.filter(fun)
         }
       }
     }
   }
 
-  pub fn map<F,S>(&self, fun: F) -> Cons<S>
+  pub fn map<F,S>(&self, fun: F) -> List<S>
     where F: Fn(T) -> S, S: Clone
   {
     match self {
-      &Cons::Null => Cons::Null,
-      &Cons::Cons(ref head, ref tail) => {
-        Cons::new(fun(head.clone()), tail.map(fun))
+      &List::End => List::End,
+      &List::Node(ref head, ref tail) => {
+        List::new(fun(head.clone()), tail.map(fun))
       }
     }
   }
+
+  // //pub fn sum<S>(&self) -> S where S: Sum<Self::Item> {
+  // fn sum<S>(&self) -> S 
+  //   where S: Add<Self::Item, Output=S> + Zero, Self: Sized 
+  // {
+  //   match self {
+  //     &Cons::Null => S::sum(0),
+  //     &Cons::Cons(ref head, ref tail) => S::sum(head.clone() + tail.sum())
+  //   }
+  // }
 }
 
 fn main() {
-  let numbers = Cons::new(1, Cons::new(2, Cons::new(3, Cons::new(4, Cons::new(5, Cons::Null)))));
+  let numbers = List::new(1, List::new(2, List::new(3, List::new(4, List::new(5, List::End)))));
   println!("{:?}", numbers); 
   println!("{:?}", numbers.to_vec()); 
-  println!("{:?}", Cons::from_iter(vec!["1","2","3","4","5"])); 
+  println!("{:?}", List::from_iter(vec!["1","2","3","4","5"])); 
 
   println!("{:?}", numbers.filter(|x| x % 2 == 0).to_vec());  // yields [2,4]
   println!("{:?}", numbers.map(|x| x * x).to_vec());  // yields [1,4,9,16,25]
-
 }
