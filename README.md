@@ -1,26 +1,33 @@
 # rust 101
-Learning rust...(work in progress)
+Learning rust...(work in progress) with the help of [codewars](https://www.codewars.com):
+
+![https://www.codewars.com/users/virgesmith/badges/micro](https://www.codewars.com/users/virgesmith/badges/micro)
 
 I've a C++ background (high-performance numerical computing) and Rust sounded interesting as it claims to prevent all(?) UB and enforces rules at compile time that I wish I could implement in C++, and expressly doesn't use a garbage collector. I'm extremely curious to see what runtime performance penalty (if any) all of this incurs.
 
-## Resources
+#### Disclaimers
+- spoiler alert: this repo contains solutions to some codewars Kata
+- none of the code here is intended to be production quality. 
+
+### Resources
 - https://doc.rust-lang.org/
 
-# Rectangle
+## Rectangle
 This is basically a few attempts at shoehorning C++ ways of doing things (classes, templates) into rust. 
 
-# Vanity
+## Vanity
 A port of some C++ code I wrote to generate bitcoin vanity addresses. A nice simple problem for concurrency. Threads only need to talk when one of them has found the answer.
 
 It's actually running faster than my C++ implementation, given enough threads. (There seems to be some thread blocking issue with openssl in my C++ implementation that means you don't see any performance improvement by increasing the number of threads - I 'fixed' it by using MPI)
 
-# Misc
+## Number
+Messing about with
 I'm new to algebraic enumerations and I like them! A lot.
 
 If you think the (signed) integer absolute value function `int abs(int)` is safe (in terms of having well-defined output for any input) you'd be wrong!
 The way two's complement works means there's one more negative integer than positive: with 8 bits that means the range of values is -128..127. So `abs(-128)` return value is outside its domain. 
 
-## How would you solve this in C++?
+### How would you solve this in C++?
 Adding a runtime check
 ```cpp
 int myabs(int x)
@@ -36,7 +43,7 @@ Likewise, plenty of floating point operations can return numbers outside the rea
 
 So, basically, you don't really solve it. You just either compromise performance, or hope that you have sufficient regression tests and sanity checks that cover (and continue to cover) production use cases.
 
-## And so how does rust help?
+### And so how does rust help?
 
 Rust uses a functional programming concept called [algebraic enumerations](). Unlike C and C++ enumerations, which simply map a symbol to a value, e.g. `BLUE=0x0000FF` (simply allowing you to make your code clearer), these map the result of one or more input values to an output *type* (and value). So, for our `myabs` function we can use the `Result` enumeration that rust provides (the function either returns a valid value, or an error)
 
@@ -92,7 +99,7 @@ fn ln(x: f64) -> Number<f64> {
 }
 ```
 
-## Is it better?
+### Is it better?
 
 Clarity: yes, once you get your head round the concept.
 
@@ -100,4 +107,15 @@ Performance: I don't know yet! TODO Profile/disassembler comparisons of the C++ 
 
 Usability: not sure. I'm not experienced enough with rust. The returned type needs to be unwrapped, or math functions need to be provided that accept a Number<>? unwrapping into the wrong type will result in a panic.
 
+## Server
+
+A simple web server
+
+## Linked List
+
+A linked list implementation using algebraic enums, based on a codewars kata solution
+
+## Vector
+
+Another kata solution
 
