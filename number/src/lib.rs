@@ -1,17 +1,28 @@
 
 extern crate num;
 use num::traits::{Zero, One};
-use num::{/*Signed, Integer,*/ Float};
+use num::{Signed, Integer, Float, Bounded};
 
-// // TODO generalise to any signed int
-// pub fn abs<T>(x : T) -> Result<T, String> 
-//   where T: Signed + Integer + Zero + std::ops::Neg {
-//   match x {
-//     -128 => Err("overflow".to_string()),
-//     x if x < T::zero() => Ok(x),
-//     _ => Ok(x)
-//   }
-// }
+#[derive(Debug)]
+pub enum NumericalError {
+  // hardware FP exceptions
+  DivZero,
+  Overflow,
+  InvalidOp,
+  // software exceptions
+  NotRealNumber,
+  Infinite
+}
+
+pub fn abs<T>(x : T) -> Result<T, NumericalError> 
+  where T: Signed + Integer + Zero + Bounded + Copy {
+  match x {
+    // min_value comes from Bounded trait
+    x if x == T::min_value() => Err(NumericalError::Overflow),
+    x if x < T::zero() => Ok(-x), // E0008: moves value into pattern guard: error fixed by adding copy trait
+    _ => Ok(x)
+  }
+}
 
 #[derive(Copy, Clone, Debug)]
 pub enum Number<T> where T: Into<f64> + Float {
@@ -83,17 +94,6 @@ impl<T> Number<T> where T: Into<f64> + Zero + One + Float {
       Number::Inf(_) => panic!("infinite!")
     }
   }
-}
-
-#[derive(Debug)]
-pub enum NumericalError {
-  // hardware FP exceptions
-  DivZero,
-  Overflow,
-  InvalidOp,
-  // software exceptions
-  NotRealNumber,
-  Infinite
 }
 
 //use std::fmt;

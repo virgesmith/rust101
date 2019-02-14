@@ -2,7 +2,7 @@
 
 mod tests {
   use number::Number::{R,C,Inf};
-  use number::{sqrt, ln};
+  use number::{abs, sqrt, ln};
   //::{R,C,Inf};
 
   #[test]
@@ -14,12 +14,25 @@ mod tests {
   }
 
   #[test]
-  fn main() {
-  //   println!("{:?}", abs(0));
-  //   println!("{:?}", abs(10));
-  //   println!("{:?}", abs(-10));
-  //   println!("{:?}", abs(-128));
+  fn integer_abs() {
+    assert_eq!(abs(0i8).unwrap(), 0);
+    assert_eq!(abs(100i8).unwrap(), 100);
+    assert_eq!(abs(-100i8).unwrap(), 100);
+    assert!(abs(-128i8).is_err());
 
+    assert_eq!(abs(0i16).unwrap(), 0);
+    assert_eq!(abs(100i16).unwrap(), 100);
+    assert_eq!(abs(-100i16).unwrap(), 100);
+    assert!(abs(-32768i16).is_err());
+
+    assert_eq!(abs(0i32).unwrap(), 0);
+    assert_eq!(abs(100i32).unwrap(), 100);
+    assert_eq!(abs(-100i32).unwrap(), 100);
+    assert!(abs(-2147483648i32).is_err());
+  }
+
+  #[test]
+  fn test() {
     assert_eq!(R(8.0).re(), 8.0);
     assert_eq!(R(8.0).im(), 0.0);
     assert_eq!(C{r:0.0, i:8.0}.re(), 0.0);
