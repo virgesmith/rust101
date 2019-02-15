@@ -3,7 +3,7 @@ extern crate num;
 use num::traits::{Zero, One};
 use num::{Signed, Integer, Float, Bounded};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)] // PartialEq required to test error values
 pub enum NumericalError {
   // hardware FP exceptions
   DivZero,
@@ -25,19 +25,34 @@ pub fn abs<T>(x : T) -> Result<T, NumericalError>
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum Number<T> where T: Into<f64> + Float {
+pub enum Number<T> where T: Into<f64> + Float + Copy {
   R(T),
   C{ r: T, i: T },
-  // TODO +/-inf for comparison and closer to IEEE754
-  Inf(bool) // sign bit (true means -ve)
+  Inf(T) // use T's inf...otherwise cant resolve type of T
 }
 
-impl <T: PartialEq> PartialEq for Number<T> where f64: std::convert::From<T>, T: Float {
+// impl <T: PartialEq> PartialEq for Number<T> where f64: std::convert::From<T>, T: Float { 
+//   fn eq(&self, other: &Number<T>) -> bool {
+//     match (self, other) {
+//       (&Number::R(ref a), &Number::R(ref b)) => a == b,
+//       (&Number::R(ref a), &Number::C{r: ref rb, i: ref ib}) => a == rb && &T::zero() == ib,
+//       (&Number::C{r: ref ra, i: ref ia}, &Number::R(ref b)) => ra == b && &T::zero() == ia,
+//       (&Number::C{r: ref ra, i: ref ia}, &Number::C{r: ref rb, i: ref ib}) => ra == rb && ia == ib,
+//       (&Number::Inf(ref a), &Number::Inf(ref b)) => a == b,
+//       _ => false,
+//     }
+//   }
+// }
+
+impl <T: PartialEq> PartialEq for Number<T> where f64: std::convert::From<T>, T: Float + Copy {
   fn eq(&self, other: &Number<T>) -> bool {
     match (self, other) {
-      (&Number::R(ref a), &Number::R(ref b)) => a == b,
-      (&Number::C{r: ref ra, i: ref ia}, &Number::C{r: ref rb, i: ref ib}) => ra == rb && ia == ib,
-      (&Number::Inf(ref a), &Number::Inf(ref b)) => a == b,
+      (Number::R(a), Number::R(b)) => a == b,
+      //                                                    which is best below?
+      (Number::R(a), Number::C{r: rb, i: ib}) => a == rb && T::zero() == *ib,
+      (Number::C{r: ra, i: ia}, Number::R(b)) => ra == b && &T::zero() == ia,
+      (Number::C{r: ra, i: ia}, Number::C{r: rb, i: ib}) => ra == rb && ia == ib,
+      (Number::Inf(a), Number::Inf(b)) => a == b,
       _ => false,
     }
   }
@@ -45,24 +60,6 @@ impl <T: PartialEq> PartialEq for Number<T> where f64: std::convert::From<T>, T:
 
 
 impl<T> Number<T> where T: Into<f64> + Zero + One + Float {
-  // pointless...
-  // pub fn real(x: T) -> Self {
-  //   Number::R(x)
-  // }
-  // pub fn complex(r:T, i: T) -> Self {
-  //   Number::C{r:r, i:i}
-  // }
-  // pub fn inf(sign: bool) -> Self {
-  //   Number::Inf(sign)
-  // }
-
-  // TODO how to overload new?
-  // pub fn new(re: T, im: T) -> Self {
-  //   Number::C{r:re, i:im}
-  // }
-
-  // TODO implicit cast? overload operator "as"
-
   // 
   pub fn R(self) -> Result<T, NumericalError> {
     match self {
@@ -71,10 +68,11 @@ impl<T> Number<T> where T: Into<f64> + Zero + One + Float {
     }
   }
 
-  pub fn C(self) -> Result<Number<T>, NumericalError> {
+  // convert to (r,i) tuple,
+  pub fn C(self) -> Result<(T,T), NumericalError> {
     match self {
-      Number::R(x) => Ok(Number::C{r:x, i:T::zero()}),
-      Number::C{r,i} => Ok(Number::C{r:r, i:i}),
+      Number::R(x) => Ok((x, T::zero())),
+      Number::C{r,i} => Ok((r, i)),
       _ => Err(NumericalError::Infinite)
     }
   }
@@ -96,7 +94,6 @@ impl<T> Number<T> where T: Into<f64> + Zero + One + Float {
   }
 }
 
-//use std::fmt;
 impl std::fmt::Display for NumericalError {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     let msg = match *self {
@@ -121,18 +118,9 @@ pub fn ln(x: f64) -> Number<f64> {
   match x {
     // only does the root in [0,pi]
     x if x < 0.0 => Number::C{ r: (-x).ln(), i: std::f64::consts::PI },
-    x if x == 0.0 => Number::Inf(true),
+    x if x == 0.0 => Number::Inf(std::f64::NEG_INFINITY),
     _ => Number::R(x.ln()) 
   }
 }
 
-fn f(x: f64, y: f64) -> Result<f64, NumericalError> {
-  // f(x,y) = sqrt(x)/y
-  match (x, y) {
-    (x, _) if x < 0.0 => Err(NumericalError::InvalidOp),
-    (_, y) if y == 0.0 => Err(NumericalError::DivZero),
-    (_, y) if y.abs() < 1.0e-300 => Err(NumericalError::Overflow),
-    (x, y) => Ok(x.sqrt() / y)
-  }
-}
 

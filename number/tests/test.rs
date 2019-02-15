@@ -3,14 +3,30 @@
 mod tests {
   use number::Number::{R,C,Inf};
   use number::{abs, sqrt, ln};
-  //::{R,C,Inf};
+  use number::NumericalError;
+
+  fn f(x: f64, y: f64) -> Result<f64, NumericalError> {
+    // f(x,y) = sqrt(x)/y
+    match (x, y) {
+      (x, _) if x < 0.0 => Err(NumericalError::InvalidOp),
+      (_, y) if y == 0.0 => Err(NumericalError::DivZero),
+      (_, y) if y.abs() < 1.0e-300 => Err(NumericalError::Overflow),
+      (x, y) => Ok(x.sqrt() / y)
+    }
+  }
 
   #[test]
   fn test_eq() {
     let r = R(1.0);
     assert_eq!(r, R(1.0));
-    //assert_eq!(r, C{r:1.0, i:0.0});
-   // assert_eq!(r, 1.0);
+    assert_eq!(r, C{r:1.0, i:0.0});
+    assert_eq!(C{r:1.0, i:0.0}, r);
+    assert_ne!(r, C{r:1.0, i:0.1});
+    assert_ne!(C{r:1.1, i:0.0}, r);
+    assert_eq!(Inf(std::f64::INFINITY), Inf(std::f64::INFINITY));
+    assert_eq!(Inf(std::f64::NEG_INFINITY), Inf(std::f64::NEG_INFINITY));
+    assert_ne!(Inf(std::f64::INFINITY), Inf(std::f64::NEG_INFINITY));
+    assert_ne!(Inf(std::f64::NEG_INFINITY), Inf(std::f64::INFINITY));
   }
 
   #[test]
@@ -42,7 +58,7 @@ mod tests {
     assert_eq!(sqrt(-64.), C{r:0.0, i:8.0});
 
     assert_eq!(ln(1.0), R(0.0));
-    assert_eq!(ln(0.0), Inf(true));
+    assert_eq!(ln(0.0), Inf(std::f64::NEG_INFINITY));
     assert_eq!(ln( std::f64::consts::E), R(1.0));
     assert_eq!(ln(-std::f64::consts::E), C{r: 1.0, i: std::f64::consts::PI});
   
@@ -64,17 +80,12 @@ mod tests {
   //   println!("{:?}", f(1.0, 1.0).unwrap());
   //   // println!("{:?}", f(-1.0, 1.0).unwrap());
   //   // println!("{:?}", f(1.0, 0.0).unwrap());
-  //   match f(-1.0, 1.0) {
-  //     Ok(x) => println!("{}", x),
-  //     Err(e) => println!("{}", e)
-  //   }
-  //   match f(1.0, 0.0) {
-  //     Ok(x) => println!("{}", x),
-  //     Err(e) => println!("{}", e)
-  //   }
-  //   match f(1.0, 1.0e-308) {
-  //     Ok(x) => println!("{}", x),
-  //     Err(e) => println!("{}", e)
-  //   }
+
+
+  assert_eq!(f( 0.0, 1.0), Ok(0.0));
+  assert_eq!(f(-1.0, 1.0), Err(NumericalError::InvalidOp));
+  assert_eq!(f( 1.0, 0.0), Err(NumericalError::DivZero));
+  assert_eq!(f( 1.0, 1.0e-308), Err(NumericalError::Overflow));
+
   }
 }
