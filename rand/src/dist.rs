@@ -18,6 +18,17 @@ struct Uniform {
   s: f64
 }
 
+#[derive(Debug)]
+struct Normal {
+  mu: f64,
+  sigma: f64
+}
+
+#[derive(Debug)]
+struct Exponential {
+  k: f64
+}
+
 use crate::gen::Gen;
 
 trait Dist {
@@ -99,6 +110,24 @@ impl Dist for Uniform {
     (0..n).map(|_| rng.uniform01() * self.s + self.l).collect()
   } 
 }
+
+impl Exponential {
+  fn new(k: f64) -> Exponential {
+    assert!(k > 0.0);
+    Exponential{k}
+  }
+}
+
+impl Dist for Exponential {
+  fn sample_1(&self, rng: &mut impl Gen) -> /*T*/ f64 {
+    -rng.uniform01().ln() / self.k 
+  } 
+
+  fn sample_n(&self, n: usize, rng: &mut impl Gen) -> /*T*/ Vec<f64> {
+    (0..n).map(|_| -rng.uniform01().ln() / self.k).collect()
+  } 
+}
+
 
 mod test {
   use super::*;
@@ -183,6 +212,20 @@ mod test {
     let mut rand = Xorshift64::seed(19937);
     let mu: f64 = u.sample_n(TRIALS, &mut rand).iter().sum::<f64>() / (TRIALS as f64);
     assert!(mu.abs() < (TRIALS as f64).sqrt());
+  }
+
+  #[test]
+  fn test_exponential_xorshift() {
+    // test k from 1e-5 to 1e+5
+    for i in -5..6 { 
+      let k = 10.0f64.powi(i);
+      let e = Exponential::new(k);
+      let mut rand = Xorshift64::seed(19937);
+      let mu: f64 = e.sample_n(TRIALS, &mut rand).iter().sum::<f64>() / (TRIALS as f64);
+      println!("{} {}", mu, 1.0/k);
+      // mean should be 1/k
+      assert!((mu * k - 1.0).abs() < 1.0 / (TRIALS as f64).sqrt());
+    }
   }
 
 }
