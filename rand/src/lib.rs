@@ -1,4 +1,4 @@
 //! Import the generator module
 //! Import the distribution module
-mod gen;
-mod dist;
+pub mod gen;
+pub mod dist;

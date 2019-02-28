@@ -1,14 +1,17 @@
 
+// extern crate num;
+// use num::Num;
+
 #[derive(Debug)]
 // TODO template
 struct Discrete {
-  v: Vec<f64>,
+  v: Vec<i32>,
 }
 
 #[derive(Debug)]
 // TODO template
 struct DiscreteWeighted {
-  v: Vec<f64>,
+  v: Vec<i32>,
   p: Vec<f64>
 }
 
@@ -25,36 +28,37 @@ struct Normal {
 }
 
 #[derive(Debug)]
-struct Exponential {
+pub struct Exponential {
   k: f64
 }
 
 use crate::gen::Gen;
 
-trait Dist {
-  fn sample_1(&self, rng: &mut impl Gen) -> f64;
-  fn sample_n(&self, n: usize, rng: &mut impl Gen) -> Vec<f64>;
+pub trait Dist<T> {
+  fn sample_1(&self, rng: &mut impl Gen) -> T;
+  fn sample_n(&self, n: usize, rng: &mut impl Gen) -> Vec<T>;
 }
 
 
 impl Discrete {
-  pub fn new(a: &[f64]) -> Discrete {
+  pub fn new(a: &[i32]) -> Discrete {
     Discrete{v:a.to_vec()}
   }
 }
 
-impl Dist for Discrete {
-  fn sample_1(&self, rng: &mut impl Gen) -> /*T*/ f64 {
-    self.v[rng.next_1() as usize % self.v.len()]
+impl Dist<i32> for Discrete {
+  fn sample_1(&self, rng: &mut impl Gen) -> i32 {
+    let i = rng.next_1() as usize % self.v.len(); 
+    self.v[i]
   } 
 
-  fn sample_n(&self, n: usize, rng: &mut impl Gen) -> /*T*/ Vec<f64> {
+  fn sample_n(&self, n: usize, rng: &mut impl Gen) -> Vec<i32> {
     (0..n).map(|_| self.v[rng.next_1() as usize % self.v.len()]).collect()
   } 
 }
 
 impl DiscreteWeighted {
-  pub fn new(a: &[(f64,f64)]) -> DiscreteWeighted {
+  pub fn new(a: &[(i32,f64)]) -> DiscreteWeighted {
     let mut s = 0.0;
     let p = a.iter().fold(Vec::with_capacity(a.len()), |mut acc, p| { s += p.1; acc.push(s); acc });
     // check probabilities sum to unity 
@@ -64,8 +68,8 @@ impl DiscreteWeighted {
   }
 }
 
-impl Dist for DiscreteWeighted {
-  fn sample_1(&self, rng: &mut impl Gen) -> /*T*/ f64 {
+impl Dist<i32> for DiscreteWeighted {
+  fn sample_1(&self, rng: &mut impl Gen) -> i32 {
     let r = rng.uniform01();
     // first element of p > r
     for i in 0..self.p.len() {
@@ -77,7 +81,7 @@ impl Dist for DiscreteWeighted {
     panic!("DiscreteWeighted sample failure, is Generator working correctly?");
   } 
 
-  fn sample_n(&self, n: usize, rng: &mut impl Gen) -> /*T*/ Vec<f64> {
+  fn sample_n(&self, n: usize, rng: &mut impl Gen) -> /*T*/ Vec<i32> {
     let mut result = Vec::with_capacity(n);
     for _ in 0..n {
       let r = rng.uniform01();
@@ -101,7 +105,7 @@ impl Uniform {
   }
 }
 
-impl Dist for Uniform {
+impl Dist<f64> for Uniform {
   fn sample_1(&self, rng: &mut impl Gen) -> /*T*/ f64 {
     rng.uniform01() * self.s + self.l 
   } 
@@ -112,13 +116,13 @@ impl Dist for Uniform {
 }
 
 impl Exponential {
-  fn new(k: f64) -> Exponential {
+  pub fn new(k: f64) -> Exponential {
     assert!(k > 0.0);
     Exponential{k}
   }
 }
 
-impl Dist for Exponential {
+impl Dist<f64> for Exponential {
   fn sample_1(&self, rng: &mut impl Gen) -> /*T*/ f64 {
     -rng.uniform01().ln() / self.k 
   } 
@@ -138,7 +142,7 @@ mod test {
   #[test]
   fn test_discrete_lcg() {
     let mut h = vec![0; 6];
-    let die = Discrete::new(&vec![1.0,2.0,3.0,4.0,5.0,6.0]);
+    let die = Discrete::new(&vec![1,2,3,4,5,6]);
     let mut rand = LCG::seed(19937);
     let r = die.sample_n(TRIALS, &mut rand);
     for i in 0..TRIALS {
@@ -154,7 +158,7 @@ mod test {
   #[test]
   fn test_discrete_xorshift() {
     let mut h = vec![0; 6];
-    let die = Discrete::new(&vec![1.0,2.0,3.0,4.0,5.0,6.0]);
+    let die = Discrete::new(&vec![1,2,3,4,5,6]);
     let mut rand = Xorshift64::seed(19937);
     for _ in 0..TRIALS {
       h[die.sample_1(&mut rand) as usize-1] += 1;
@@ -170,7 +174,7 @@ mod test {
   fn test_discrete_flat_weighted_xorshift() {
     let mut h = vec![0; 6];
     let p = 1.0 / 6.0;
-    let fair_die = DiscreteWeighted::new(&vec![(1.0, p), (2.0, p), (3.0, p), (4.0, p), (5.0, p), (6.0, p)]);
+    let fair_die = DiscreteWeighted::new(&vec![(1, p), (2, p), (3, p), (4, p), (5, p), (6, p)]);
     let mut rand = Xorshift64::seed(19937);
     for _ in 0..TRIALS {
       h[fair_die.sample_1(&mut rand) as usize-1] += 1;
@@ -185,7 +189,7 @@ mod test {
   #[test]
   fn test_discrete_weighted_xorshift() {
     let mut h = vec![0; 6];
-    let fair_die = DiscreteWeighted::new(&vec![(1.0, 0.5), (2.0, 0.1), (3.0, 0.1), (4.0, 0.1), (5.0, 0.1), (6.0, 0.1)]);
+    let fair_die = DiscreteWeighted::new(&vec![(1, 0.5), (2, 0.1), (3, 0.1), (4, 0.1), (5, 0.1), (6, 0.1)]);
     let mut rand = Xorshift64::seed(19937);
     for _ in 0..TRIALS {
       h[fair_die.sample_1(&mut rand) as usize-1] += 1;
