@@ -3,6 +3,8 @@ name = "rand"
 version = "0.1.0"
 authors = []
 edition = "2018"
+links = "sobol"
+# not being called?
+#build = "build.rs"
 
 [dependencies]
-#num = "*"

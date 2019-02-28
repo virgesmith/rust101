@@ -4,39 +4,47 @@
 
 #[derive(Debug)]
 // TODO template
-struct Discrete {
+pub struct Discrete {
   v: Vec<i32>,
 }
 
 #[derive(Debug)]
-// TODO template
-struct DiscreteWeighted {
+// TODO template?
+pub struct DiscreteWeighted {
   v: Vec<i32>,
   p: Vec<f64>
 }
 
+pub struct WithoutReplacement {
+  v: Vec<i32>,
+  f: Vec<u32>
+}
+
 #[derive(Debug)]
-struct Uniform {
+pub struct Uniform {
   l: f64,
   s: f64
 }
 
 #[derive(Debug)]
-struct Normal {
+pub struct Normal {
   mu: f64,
-  sigma: f64
+  sigma: f64, 
+  // for Box-Muller
+  is_cached: bool,
+  cached_val: f64
 }
 
 #[derive(Debug)]
 pub struct Exponential {
-  k: f64
+  lambda: f64
 }
 
 use crate::gen::Gen;
 
 pub trait Dist<T> {
-  fn sample_1(&self, rng: &mut impl Gen) -> T;
-  fn sample_n(&self, n: usize, rng: &mut impl Gen) -> Vec<T>;
+  fn sample_1(&mut self, rng: &mut impl Gen) -> T;
+  fn sample_n(&mut self, n: usize, rng: &mut impl Gen) -> Vec<T>;
 }
 
 
@@ -47,12 +55,12 @@ impl Discrete {
 }
 
 impl Dist<i32> for Discrete {
-  fn sample_1(&self, rng: &mut impl Gen) -> i32 {
+  fn sample_1(&mut self, rng: &mut impl Gen) -> i32 {
     let i = rng.next_1() as usize % self.v.len(); 
     self.v[i]
   } 
 
-  fn sample_n(&self, n: usize, rng: &mut impl Gen) -> Vec<i32> {
+  fn sample_n(&mut self, n: usize, rng: &mut impl Gen) -> Vec<i32> {
     (0..n).map(|_| self.v[rng.next_1() as usize % self.v.len()]).collect()
   } 
 }
@@ -69,11 +77,12 @@ impl DiscreteWeighted {
 }
 
 impl Dist<i32> for DiscreteWeighted {
-  fn sample_1(&self, rng: &mut impl Gen) -> i32 {
+  fn sample_1(&mut self, rng: &mut impl Gen) -> i32 {
     let r = rng.uniform01();
     // first element of p > r
+    // TODO bisect?
     for i in 0..self.p.len() {
-      if self.p[i] >= r {
+      if self.p[i] > r {
         return self.v[i];
       } 
     }
@@ -81,54 +90,107 @@ impl Dist<i32> for DiscreteWeighted {
     panic!("DiscreteWeighted sample failure, is Generator working correctly?");
   } 
 
-  fn sample_n(&self, n: usize, rng: &mut impl Gen) -> /*T*/ Vec<i32> {
-    let mut result = Vec::with_capacity(n);
-    for _ in 0..n {
-      let r = rng.uniform01();
-      // first element of p > r
-      for i in 0..self.p.len() {
-        if self.p[i] >= r {
-          result.push(self.v[i]);
-        } 
-      }
-      // TODO better way?
-      panic!("DiscreteWeighted sample failure, is Generator working correctly?");
-    }
-    result
+  fn sample_n(&mut self, n: usize, rng: &mut impl Gen) -> /*T*/ Vec<i32> {
+    (0..n).map(|_| self.sample_1(rng)).collect()
   } 
 }
 
+impl WithoutReplacement {
+  pub fn new(state_occs: &[(i32,u32)]) -> WithoutReplacement {
+    WithoutReplacement{ v: state_occs.iter().map(|&(v,_)| v).collect(), 
+                        f: state_occs.iter().map(|&(_,f)| f).collect() }
+  }
+
+  pub fn empty(&self) -> bool {
+    self.f.iter().sum::<u32>() == 0
+  }
+}
+
+impl Dist<i32> for WithoutReplacement {
+  fn sample_1(&mut self, rng: &mut impl Gen) -> i32
+  {
+    let mut s = 0;
+    let cumul = self.f.iter().fold(Vec::with_capacity(self.f.len()), |mut acc, f| { s += f; acc.push(s); acc });
+    let r = rng.next_1() % cumul.last().unwrap();
+    for i in 0..cumul.len() {
+      if cumul[i] > r {
+        self.f[i] -= 1;
+        return self.v[i];
+      } 
+    }
+    // TODO better way?
+    panic!("WithoutReplacement sample failure, is Generator working correctly?");
+  }
+
+  fn sample_n(&mut self, n: usize, rng: &mut impl Gen) -> /*T*/ Vec<i32> {
+    (0..n).map(|_| self.sample_1(rng)).collect()
+  }
+}
+
 impl Uniform {
-  fn new(l: f64, h: f64) -> Uniform {
+  pub fn new(l: f64, h: f64) -> Uniform {
     assert!(h > l);
     Uniform{l: l, s: h-l}
   }
 }
 
 impl Dist<f64> for Uniform {
-  fn sample_1(&self, rng: &mut impl Gen) -> /*T*/ f64 {
+  fn sample_1(&mut self, rng: &mut impl Gen) -> f64 {
     rng.uniform01() * self.s + self.l 
   } 
 
-  fn sample_n(&self, n: usize, rng: &mut impl Gen) -> /*T*/ Vec<f64> {
+  fn sample_n(&mut self, n: usize, rng: &mut impl Gen) -> Vec<f64> {
     (0..n).map(|_| rng.uniform01() * self.s + self.l).collect()
   } 
 }
 
+impl Normal {
+  pub fn new(mean: f64, variance: f64) -> Normal {
+    assert!(variance > 0.0);
+    Normal{mu: mean, sigma: variance.sqrt(), is_cached: false, cached_val: std::f64::NAN }
+  }
+}
+
+impl Dist<f64> for Normal {
+  // won't work: impl stricter than trait not allowed
+  //fn sample_1<T>(&mut self, rng: &mut T)  -> f64 where T: Gen + Rejectable {
+  fn sample_1(&mut self, rng: &mut impl Gen) -> f64 {
+    if self.is_cached {
+      self.is_cached = false;
+      return self.cached_val;
+    }
+    loop {
+      let (x,y) = (rng.uniform01() * 2.0 - 1.0, rng.uniform01() * 2.0 - 1.0);
+      let s = x*x + y*y;
+      if s > 0.0 && s < 1.0 {
+        let m = (-2.0 * s.ln() / s).sqrt();
+        self.is_cached = true;
+        self.cached_val = self.mu + self.sigma * y * m;
+        return self.mu + self.sigma * x * m;
+      }
+    }
+  } 
+
+  fn sample_n(&mut self, n: usize, rng: &mut impl Gen) -> Vec<f64> {
+    (0..n).map(|_| self.sample_1(rng)).collect()
+  } 
+}
+
+
 impl Exponential {
-  pub fn new(k: f64) -> Exponential {
-    assert!(k > 0.0);
-    Exponential{k}
+  pub fn new(lambda: f64) -> Exponential {
+    assert!(lambda > 0.0);
+    Exponential{lambda}
   }
 }
 
 impl Dist<f64> for Exponential {
-  fn sample_1(&self, rng: &mut impl Gen) -> /*T*/ f64 {
-    -rng.uniform01().ln() / self.k 
+  fn sample_1(&mut self, rng: &mut impl Gen) -> /*T*/ f64 {
+    -rng.uniform01().ln() / self.lambda 
   } 
 
-  fn sample_n(&self, n: usize, rng: &mut impl Gen) -> /*T*/ Vec<f64> {
-    (0..n).map(|_| -rng.uniform01().ln() / self.k).collect()
+  fn sample_n(&mut self, n: usize, rng: &mut impl Gen) -> /*T*/ Vec<f64> {
+    (0..n).map(|_| -rng.uniform01().ln() / self.lambda).collect()
   } 
 }
 
@@ -142,7 +204,7 @@ mod test {
   #[test]
   fn test_discrete_lcg() {
     let mut h = vec![0; 6];
-    let die = Discrete::new(&vec![1,2,3,4,5,6]);
+    let mut die = Discrete::new(&vec![1,2,3,4,5,6]);
     let mut rand = LCG::seed(19937);
     let r = die.sample_n(TRIALS, &mut rand);
     for i in 0..TRIALS {
@@ -158,7 +220,7 @@ mod test {
   #[test]
   fn test_discrete_xorshift() {
     let mut h = vec![0; 6];
-    let die = Discrete::new(&vec![1,2,3,4,5,6]);
+    let mut die = Discrete::new(&vec![1,2,3,4,5,6]);
     let mut rand = Xorshift64::seed(19937);
     for _ in 0..TRIALS {
       h[die.sample_1(&mut rand) as usize-1] += 1;
@@ -174,7 +236,7 @@ mod test {
   fn test_discrete_flat_weighted_xorshift() {
     let mut h = vec![0; 6];
     let p = 1.0 / 6.0;
-    let fair_die = DiscreteWeighted::new(&vec![(1, p), (2, p), (3, p), (4, p), (5, p), (6, p)]);
+    let mut fair_die = DiscreteWeighted::new(&vec![(1, p), (2, p), (3, p), (4, p), (5, p), (6, p)]);
     let mut rand = Xorshift64::seed(19937);
     for _ in 0..TRIALS {
       h[fair_die.sample_1(&mut rand) as usize-1] += 1;
@@ -189,7 +251,7 @@ mod test {
   #[test]
   fn test_discrete_weighted_xorshift() {
     let mut h = vec![0; 6];
-    let fair_die = DiscreteWeighted::new(&vec![(1, 0.5), (2, 0.1), (3, 0.1), (4, 0.1), (5, 0.1), (6, 0.1)]);
+    let mut fair_die = DiscreteWeighted::new(&vec![(1, 0.5), (2, 0.1), (3, 0.1), (4, 0.1), (5, 0.1), (6, 0.1)]);
     let mut rand = Xorshift64::seed(19937);
     for _ in 0..TRIALS {
       h[fair_die.sample_1(&mut rand) as usize-1] += 1;
@@ -203,8 +265,33 @@ mod test {
   }
 
   #[test]
+  fn test_without_replacement_xorshift() {
+    // sample all at once
+    {
+      let state_occs = (1..=10).map(|i| (i,1)).collect::<Vec<(i32, u32)>>();
+      let mut dist = WithoutReplacement::new(&state_occs);
+      let mut rng = Xorshift64::seed(19937);
+      let mut res = dist.sample_n(state_occs.len(), &mut rng);
+      res.sort();
+      assert_eq!(res, state_occs.iter().map(|&(v,_)| v).collect::<Vec<i32>>());
+    }
+    // sample one at a time until exhausted
+    {
+      let state_occs = (1..=10).map(|i| (i,1)).collect::<Vec<(i32, u32)>>();
+      let mut dist = WithoutReplacement::new(&state_occs);
+      let mut rng = Xorshift64::seed(19937);
+      let mut res = Vec::with_capacity(state_occs.len());
+      while !dist.empty() {
+        res.push(dist.sample_1(&mut rng));
+      }
+      res.sort();
+      assert_eq!(res, state_occs.iter().map(|&(v,_)| v).collect::<Vec<i32>>());
+    }
+  }
+
+  #[test]
   fn test_uniform_lcg() {
-    let u = Uniform::new(-1.0, 1.0);
+    let mut u = Uniform::new(-1.0, 1.0);
     let mut rand = LCG::seed(19937);
     let mu: f64 = u.sample_n(TRIALS, &mut rand).iter().sum::<f64>() / (TRIALS as f64);
     assert!(mu.abs() < (TRIALS as f64).sqrt());
@@ -212,7 +299,7 @@ mod test {
 
   #[test]
   fn test_uniform_xorshift() {
-    let u = Uniform::new(-1.0, 1.0);
+    let mut u = Uniform::new(-1.0, 1.0);
     let mut rand = Xorshift64::seed(19937);
     let mu: f64 = u.sample_n(TRIALS, &mut rand).iter().sum::<f64>() / (TRIALS as f64);
     assert!(mu.abs() < (TRIALS as f64).sqrt());
@@ -223,7 +310,7 @@ mod test {
     // test k from 1e-5 to 1e+5
     for i in -5..6 { 
       let k = 10.0f64.powi(i);
-      let e = Exponential::new(k);
+      let mut e = Exponential::new(k);
       let mut rand = Xorshift64::seed(19937);
       let mu: f64 = e.sample_n(TRIALS, &mut rand).iter().sum::<f64>() / (TRIALS as f64);
       println!("{} {}", mu, 1.0/k);
@@ -232,4 +319,16 @@ mod test {
     }
   }
 
+  #[test]
+  fn test_normal_xorshift() {
+    // test variance from 1e-5 to 1e+5
+    for i in -5..=5 { 
+      let var = 10.0f64.powi(i);
+      let mut e = Normal::new(0.0, var);
+      let mut rand = Xorshift64::seed(19937);
+      let mu: f64 = e.sample_n(TRIALS, &mut rand).iter().sum::<f64>() / (TRIALS as f64);
+      // mean should be 0.0 +/- 
+      assert!(mu.abs() < (var / (TRIALS as f64)).sqrt());
+    }
+  }
 }

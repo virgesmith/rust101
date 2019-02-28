@@ -26,6 +26,16 @@ pub struct Xorshift64 {
   r: u64
 }
 
+// hack a pointer to C struct
+type SobolData = u64;
+pub struct Sobol {
+  dim: usize,
+  cache: Vec<u32>,
+  // pointer...
+  pimpl: SobolData
+}
+
+
 use std::time::{SystemTime, UNIX_EPOCH};
 
 // private 
@@ -106,6 +116,35 @@ impl Gen for Xorshift64 {
   }
 }
 
+//#[link(name="sobol")]
+#[link(name = "sobol", kind = "static")]
+extern {
+  // SobolData* nlopt_sobol_create(uint32_t sdim)
+  fn nlopt_sobol_create(dim: u32) -> SobolData;
+  // int nlopt_sobol_next(SobolData* s, uint32_t *x)
+  fn nlopt_sobol_next(pimpl: SobolData, dest: &u32) -> i32;
+  // void nlopt_sobol_skip(SobolData* s, uint32_t n, uint32_t *x)
+  fn nlopt_sobol_skip(pimpl: SobolData, skips: u32, dest: &u32) -> ();
+  // void nlopt_sobol_destroy(SobolData* s)
+  fn nlopt_sobol_destroy(pimpl: SobolData) -> ();
+}
+
+impl Sobol {
+  pub fn new(dim: u32) -> Sobol {
+    Sobol{dim: dim as usize, cache: vec![0; dim as usize], pimpl: unsafe { nlopt_sobol_create(dim) } }
+  }
+
+  pub fn drop(&self) {
+    unsafe { nlopt_sobol_destroy(self.pimpl); }
+  }
+
+  pub fn next_d(&self) -> Vec<f64> {
+    unsafe { nlopt_sobol_next(self.pimpl, &self.cache[0]); }
+    self.cache.iter().map(|&x| x as f64 / 2.0f64.powi(32)).collect()
+  }
+
+}
+
 mod test {
   use super::*;
 
@@ -115,7 +154,7 @@ mod test {
     let mut gen = LCG::seed(1);
     assert_eq!(gen.next_1(), LCG::A as u32);
 
-    let mean: f64 = gen.uniforms01(TRIALS).into_iter().sum::<f64>() / (TRIALS as f64);
+    let mean: f64 = gen.uniforms01(TRIALS).iter().sum::<f64>() / (TRIALS as f64);
     assert!(mean > 0.49 && mean < 0.51);
   }
 
@@ -124,7 +163,19 @@ mod test {
     let mut gen = Xorshift64::seed(1);
     assert_eq!(gen.next_1(), 1115824193);
 
-    let mean: f64 = gen.uniforms01(TRIALS).into_iter().sum::<f64>() / (TRIALS as f64);
+    let mean: f64 = gen.uniforms01(TRIALS).iter().sum::<f64>() / (TRIALS as f64);
     assert!(mean > 0.49 && mean < 0.51);
+  }
+
+  #[test]
+  fn test_sobol() {
+    let gen = Sobol::new(8);
+    assert_eq!(gen.dim, 8);
+    assert_eq!(gen.next_d(), vec![0.5; 8]);
+
+    let gen = Sobol::new(2);
+    gen.next_d();
+    assert_eq!(gen.next_d(), vec![0.75, 0.25]);
+    assert_eq!(gen.next_d(), vec![0.25, 0.75]);
   }
 }
