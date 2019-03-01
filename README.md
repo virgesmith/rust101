@@ -119,3 +119,18 @@ A linked list implementation using algebraic enums, based on a codewars kata sol
 
 Another kata solution
 
+## Rand
+
+More reinventing the wheel to learn rust and how to integrate with C and C++. A random number library with C linkage. Generators:
+- C++11 minstd implementation of an LCG generator
+- 64-bit xor shift generator
+- Mersenne twister (C++11 std lib implementation)
+- Sobol quasirandom sequence generator (C implementation)
+Distributions:
+- Discrete (integer) uniform
+- Discrete (integer) weighted
+- Discrete (integer) without-replacement
+- Continuous uniform
+- Normal
+- Exponential
+

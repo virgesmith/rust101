@@ -26,6 +26,15 @@ pub struct Xorshift64 {
   r: u64
 }
 
+type MT19937Impl = u64;
+pub struct MT19937 {
+  seed: u32,
+  //cache: Vec<u32>,
+  // pointer...
+  pimpl: MT19937Impl
+}
+
+
 // hack a pointer to C struct
 type SobolData = u64;
 pub struct Sobol {
@@ -104,7 +113,7 @@ impl Gen for Xorshift64 {
   }
 
   fn uniform01(&mut self) -> f64 {
-    self.next_1() as f64 / std::u32::MAX as f64
+    self.next_1() as f64 / 2.0f64.powi(32)
   }
 
   fn uniforms01(&mut self, n: usize) -> Vec<f64> {
@@ -116,7 +125,57 @@ impl Gen for Xorshift64 {
   }
 }
 
-//#[link(name="sobol")]
+
+#[link(name = "mt19937", kind = "static")]
+extern {
+  // std::mt19937* mt19937_create(uint32_t seed)
+  fn mt19937_create(seed: u32) -> MT19937Impl;
+  // uint32_t mt_19937_next(std::mt19937* pimpl) 
+  fn mt19937_next(pimpl: MT19937Impl) -> u32;
+  // void mt19937_destroy(std::mt19937* pimpl)
+  fn mt19937_destroy(pimpl: MT19937Impl) -> ();
+}
+
+impl MT19937 {
+  fn drop(&self) {
+    unsafe { mt19937_destroy(self.pimpl); }
+  }
+}
+
+impl Gen for MT19937 {
+  fn new() -> MT19937 {
+    MT19937::seed(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().subsec_nanos())   
+  }
+
+  fn seed(seed: u32) -> MT19937 {
+    unsafe { MT19937{seed:seed, pimpl: mt19937_create(seed)} }
+  }
+
+  fn next_1(&mut self) -> u32 {
+    unsafe { mt19937_next(self.pimpl) }
+  }
+
+  fn next_n(&mut self, n: usize) -> Vec<u32> {
+    (0..n).map(|_| self.next_1()).collect()
+  }
+
+  fn uniform01(&mut self) -> f64 {
+    self.next_1() as f64 / 2.0f64.powi(32)
+  }
+
+  fn uniforms01(&mut self, n: usize) -> Vec<f64> {
+    (0..n).map(|_| self.uniform01()).collect()
+  }
+
+  fn reset(&mut self) {
+    unsafe { 
+      mt19937_destroy(self.pimpl); 
+      self.pimpl = mt19937_create(self.seed);
+    }
+  }
+
+}
+
 #[link(name = "sobol", kind = "static")]
 extern {
   // SobolData* nlopt_sobol_create(uint32_t sdim)
@@ -165,6 +224,14 @@ mod test {
 
     let mean: f64 = gen.uniforms01(TRIALS).iter().sum::<f64>() / (TRIALS as f64);
     assert!(mean > 0.49 && mean < 0.51);
+  }
+
+  #[test]
+  fn test_mt19937() {
+    let mut gen = MT19937::new();
+    let r = gen.next_n(10);
+    gen.reset();
+    assert_eq!(r, gen.next_n(10));
   }
 
   #[test]
