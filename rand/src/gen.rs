@@ -51,7 +51,6 @@ pub struct Sobol {
   pimpl: SobolImpl
 }
 
-
 use std::time::{SystemTime, UNIX_EPOCH};
 
 // private 
@@ -145,8 +144,8 @@ extern {
   fn mt19937_destroy(pimpl: MT19937Impl) -> ();
 }
 
-impl MT19937 {
-  fn drop(&self) {
+impl Drop for MT19937 {
+  fn drop(&mut self) {
     unsafe { mt19937_destroy(self.pimpl); }
   }
 }
@@ -198,12 +197,11 @@ extern {
   fn nlopt_sobol_destroy(pimpl: SobolImpl) -> ();
 }
 
-impl Sobol {
+impl Drop for Sobol {
   fn drop(&mut self) {
     unsafe { nlopt_sobol_destroy(self.pimpl); }
   }
 }
-
 
 
 impl QRNG for Sobol {
