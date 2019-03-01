@@ -3,30 +3,43 @@
 // mod rand is implicit from project name in Cargo.toml
 // mod gen  is implicit from this filename
 
-// Pseudo Generator interface
-// Initialise using clock as seed
+/// Pseudorandom generator interface
 pub trait PRNG {
+  /// Initialise using clock as seed
   fn new() -> Self;
+  /// Initialise using explicit value
   fn seed(s: u32) -> Self;
+  /// Return next integer in the sequence
   fn next_1(&mut self) -> u32;
+  /// Return next n integers in the sequence
   fn next_n(&mut self, n: usize) -> Vec<u32>;
+  /// Return the next value as a normalised float
   fn uniform01(&mut self) -> f64;
+  /// Return the next n values as normalised floats
   fn uniforms01(&mut self, n: usize) -> Vec<f64>;
+  /// Reset the generator to its initial state
   fn reset(&mut self) -> &mut Self;
 }
 
-// Quasi Generator interface
-// Initialise using dimension
+/// Quasirandom generator interface
 pub trait QRNG {
+  // Initialise using dimension d
   fn new(dim: u32) -> Self;
+  /// Return next integers in the sequence (one per dimension)
   fn next_d(&self) -> Vec<u32>;
+  /// Return next integers in the sequence (one per dimension)
   fn uniforms01(&self) -> Vec<f64>;
+  /// Skip n values in the sequence (n * dimension values)
   fn skip(&self, n: u32) -> &Self;
+  /// Reset the generator to its initial state
   fn reset(&mut self) -> &mut Self;
 }
 
+/// Linear congruential generator equivalent to the C++11 minstd_rand 
 pub struct LCG {
+  /// The seed
   s: u32,
+  /// The current value
   r: u32
 }
 
@@ -35,7 +48,7 @@ pub struct Xorshift64 {
   r: u64
 }
 
-// untyped pointer to C++ object
+/// untyped pointer to C++ object. rust doesnt need to know the type as it doesnt directly access the object
 type MT19937Impl = *const std::ffi::c_void;
 pub struct MT19937 {
   seed: u32,
@@ -43,7 +56,7 @@ pub struct MT19937 {
 }
 
 
-// untyped pointer to C struct
+/// untyped pointer to C struct. rust doesnt need to know the type as it doesnt directly access the object
 type SobolImpl = *const std::ffi::c_void;
 pub struct Sobol {
   dim: u32,
@@ -195,6 +208,8 @@ extern {
   fn nlopt_sobol_skip(pimpl: SobolImpl, skips: u32, dest: &u32) -> ();
   // void nlopt_sobol_destroy(SobolData* s)
   fn nlopt_sobol_destroy(pimpl: SobolImpl) -> ();
+  // inline uint32_t sobol_maxdim() { return MAXDIM; }
+  fn sobol_maxdim() -> u32;
 }
 
 impl Drop for Sobol {
@@ -203,9 +218,9 @@ impl Drop for Sobol {
   }
 }
 
-
 impl QRNG for Sobol {
   fn new(dim: u32) -> Sobol {
+    assert!(dim > 0 && dim <= unsafe {sobol_maxdim()});
     let this = Sobol{dim: dim, cache: vec![0; dim as usize], pimpl: unsafe { nlopt_sobol_create(dim) } };
     // initialise cache
     unsafe { nlopt_sobol_next(this.pimpl, &this.cache[0]); }
@@ -262,6 +277,12 @@ mod test {
   }
 
   #[test]
+  #[should_panic]
+  fn test_lcg_failures() {
+    LCG::seed(0);
+  }
+
+  #[test]
   fn test_xorshift64() {
     let mut gen = Xorshift64::seed(1);
     assert_eq!(gen.next_1(), 1115824193);
@@ -269,6 +290,12 @@ mod test {
     let mean: f64 = gen.uniforms01(TRIALS).iter().sum::<f64>() / (TRIALS as f64);
     assert!(mean > 0.49 && mean < 0.51);
   }
+
+  #[test]
+  #[should_panic]
+  fn test_xorshift64_failures() {
+    Xorshift64::seed(0);
+  }  
 
   #[test]
   fn test_mt19937() {
@@ -288,6 +315,21 @@ mod test {
     assert_eq!(gen.uniforms01(), vec![0.75, 0.25]);
     assert_eq!(gen.uniforms01(), vec![0.25, 0.75]);
     // reset and skip forward
-    assert_eq!(gen.reset().skip(2).uniforms01(), vec![0.25, 0.75])
+    assert_eq!(gen.reset().skip(2).uniforms01(), vec![0.25, 0.75]);
+
+    let mut gen = Sobol::new(1111);
+    assert_eq!(gen.uniforms01(), vec![0.5; 1111]);
   }
+
+  #[test]
+  #[should_panic]
+  fn test_sobol_failures() {
+    Sobol::new(0);
+  }  
+
+  #[test]
+  #[should_panic]
+  fn test_sobol_failures2() {
+    Sobol::new(unsafe { sobol_maxdim() } + 1);
+  }  
 }

@@ -50,6 +50,7 @@ pub trait Dist<T> {
 
 impl Discrete {
   pub fn new(a: &[i32]) -> Discrete {
+    assert!(a.len() > 0);
     Discrete{v:a.to_vec()}
   }
 }
@@ -67,9 +68,11 @@ impl Dist<i32> for Discrete {
 
 impl DiscreteWeighted {
   pub fn new(a: &[(i32,f64)]) -> DiscreteWeighted {
+    assert!(a.len() > 0);
     let mut s = 0.0;
+    // check probs in [0,1]
     let p = a.iter().fold(Vec::with_capacity(a.len()), |mut acc, p| { s += p.1; acc.push(s); acc });
-    // check probabilities sum to unity 
+    // check probabilities sum to unity
     assert!(p.last().unwrap().abs() - 1.0 < std::f64::EPSILON);
     DiscreteWeighted{ v: a.iter().fold(Vec::with_capacity(a.len()), |mut acc, p| { acc.push(p.0); acc }),
               p: p}
@@ -97,6 +100,7 @@ impl Dist<i32> for DiscreteWeighted {
 
 impl WithoutReplacement {
   pub fn new(state_occs: &[(i32,u32)]) -> WithoutReplacement {
+    assert!(state_occs.len() > 0);
     WithoutReplacement{ v: state_occs.iter().map(|&(v,_)| v).collect(), 
                         f: state_occs.iter().map(|&(_,f)| f).collect() }
   }
@@ -171,6 +175,23 @@ impl Dist<f64> for Normal {
     }
   } 
 
+  /// Returns a vector of n normal variates
+  ///
+  /// # Arguments
+  ///
+  /// * `n` - The number of variates to return
+  /// * `rng` - An instance of a pseudorandom generator
+  ///
+  /// # Example
+  /// ```
+  /// // Sample 100 normal variates with zero mean and unit variance 
+  /// // using Mersenne Twister as the underlying random number generator
+  /// use rand::gen::*;
+  /// use rand::dist::*;
+  /// let mut normdist = Normal::new(0.0, 1.0);
+  /// let mut rng = MT19937::new();
+  /// let v = normdist.sample_n(100, &mut rng);
+  /// ```
   fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> Vec<f64> {
     (0..n).map(|_| self.sample_1(rng)).collect()
   } 
@@ -215,6 +236,12 @@ mod test {
     for n in h {
       assert!(n > lo && n < hi);      
     }
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_discrete_invalid() {
+    Discrete::new(&vec![]);
   }
 
   #[test]
@@ -265,6 +292,12 @@ mod test {
   }
 
   #[test]
+  #[should_panic]
+  fn test_discrete_weighted_invalid() {
+    DiscreteWeighted::new(&vec![]);
+  }
+
+  #[test]
   fn test_without_replacement_xorshift() {
     // sample all at once
     {
@@ -290,6 +323,12 @@ mod test {
   }
 
   #[test]
+  #[should_panic]
+  fn test_without_replacement_invalid() {
+    WithoutReplacement::new(&vec![]);
+  }
+
+  #[test]
   fn test_uniform_lcg() {
     let mut u = Uniform::new(-1.0, 1.0);
     let mut rand = LCG::seed(19937);
@@ -303,6 +342,12 @@ mod test {
     let mut rand = Xorshift64::seed(19937);
     let mu: f64 = u.sample_n(TRIALS, &mut rand).iter().sum::<f64>() / (TRIALS as f64);
     assert!(mu.abs() < (TRIALS as f64).sqrt());
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_uniform_invalid() {
+    Uniform::new(1.0, 1.0);
   }
 
   #[test]
@@ -320,6 +365,12 @@ mod test {
   }
 
   #[test]
+  #[should_panic]
+  fn test_exponential_invalid() {
+    Exponential::new(0.0);
+  }
+
+  #[test]
   fn test_normal_xorshift() {
     // test variance from 1e-5 to 1e+5
     for i in -5..=5 { 
@@ -330,5 +381,11 @@ mod test {
       // mean should be 0.0 +/- 
       assert!(mu.abs() < (var / (TRIALS as f64)).sqrt());
     }
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_normal_invalid() {
+    Normal::new(0.0, 0.0);
   }
 }

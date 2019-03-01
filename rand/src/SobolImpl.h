@@ -31,6 +31,9 @@ int nlopt_sobol_next(SobolData* s, uint32_t* x);
 
 void nlopt_sobol_skip(SobolData* s, uint32_t n, uint32_t* x);
 
+// added for validation
+uint32_t sobol_maxdim();
+
 #ifdef __cplusplus
 }
 #endif

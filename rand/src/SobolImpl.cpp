@@ -1,7 +1,3 @@
-// should be in build.rs
-// g++ -g -O2 -c SobolImpl.cpp
-// ar rcs libsobol.a SobolImpl.o
-
 // Adapted from https://github.com/stevengj/nlopt/
 
 /* Copyright (c) 2007 Massachusetts Institute of Technology
@@ -238,6 +234,11 @@ void nlopt_sobol_skip(SobolData* s, uint32_t n, uint32_t *x)
 	  while (k*2 < n) k *= 2;
 	  while (k-- > 0) sobol_gen(s, x);
   }
+}
+
+uint32_t sobol_maxdim() 
+{ 
+  return MAXDIM; 
 }
 
 }
