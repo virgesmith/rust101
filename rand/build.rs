@@ -5,6 +5,8 @@ use std::env;
 use std::path::Path;
 
 fn main() {
+  // ensure lib dir exists
+  Command::new("mkdir").args(&["-p", "lib"]).status().unwrap();
   Command::new("g++").args(&["../src/SobolImpl.cpp", "-c", "-std=c++14", "-g", "-O2", "-fPIC"])
                      .current_dir("./lib").status().unwrap();
   Command::new("ar").args(&["crus", "./libsobol.a", "./SobolImpl.o"])

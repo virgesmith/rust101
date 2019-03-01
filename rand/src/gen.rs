@@ -3,17 +3,26 @@
 // mod rand is implicit from project name in Cargo.toml
 // mod gen  is implicit from this filename
 
-//! Generator interface
-//! Initialise using clock as seed
-//! 
-pub trait Gen {
+// Pseudo Generator interface
+// Initialise using clock as seed
+pub trait PRNG {
   fn new() -> Self;
   fn seed(s: u32) -> Self;
   fn next_1(&mut self) -> u32;
   fn next_n(&mut self, n: usize) -> Vec<u32>;
   fn uniform01(&mut self) -> f64;
   fn uniforms01(&mut self, n: usize) -> Vec<f64>;
-  fn reset(&mut self);
+  fn reset(&mut self) -> &mut Self;
+}
+
+// Quasi Generator interface
+// Initialise using dimension
+pub trait QRNG {
+  fn new(dim: u32) -> Self;
+  fn next_d(&self) -> Vec<u32>;
+  fn uniforms01(&self) -> Vec<f64>;
+  fn skip(&self, n: u32) -> &Self;
+  fn reset(&mut self) -> &mut Self;
 }
 
 pub struct LCG {
@@ -26,22 +35,20 @@ pub struct Xorshift64 {
   r: u64
 }
 
-type MT19937Impl = u64;
+// untyped pointer to C++ object
+type MT19937Impl = *const std::ffi::c_void;
 pub struct MT19937 {
   seed: u32,
-  //cache: Vec<u32>,
-  // pointer...
   pimpl: MT19937Impl
 }
 
 
-// hack a pointer to C struct
-type SobolData = u64;
+// untyped pointer to C struct
+type SobolImpl = *const std::ffi::c_void;
 pub struct Sobol {
-  dim: usize,
+  dim: u32,
   cache: Vec<u32>,
-  // pointer...
-  pimpl: SobolData
+  pimpl: SobolImpl
 }
 
 
@@ -54,7 +61,7 @@ impl LCG {
 }
 
 // public
-impl Gen for LCG {
+impl PRNG for LCG {
   fn new() -> LCG {
     LCG::seed(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().subsec_nanos())   
   }
@@ -81,14 +88,15 @@ impl Gen for LCG {
     (0..n).map(|_| self.uniform01()).collect()
   }
 
-  fn reset(&mut self) {
+  fn reset(&mut self) -> &mut Self {
     self.r = self.s;  
+    self
   }
 }
 
 impl Xorshift64 { }
 
-impl Gen for Xorshift64 {
+impl PRNG for Xorshift64 {
   fn new() -> Xorshift64 {
     Xorshift64::seed(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().subsec_nanos())   
   }
@@ -120,8 +128,9 @@ impl Gen for Xorshift64 {
     (0..n).map(|_| self.uniform01()).collect()
   }
 
-  fn reset(&mut self) {
-    self.r = self.s;  
+  fn reset(&mut self) -> &mut Self {
+    self.r = self.s; 
+    self 
   }
 }
 
@@ -142,7 +151,7 @@ impl MT19937 {
   }
 }
 
-impl Gen for MT19937 {
+impl PRNG for MT19937 {
   fn new() -> MT19937 {
     MT19937::seed(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().subsec_nanos())   
   }
@@ -167,11 +176,12 @@ impl Gen for MT19937 {
     (0..n).map(|_| self.uniform01()).collect()
   }
 
-  fn reset(&mut self) {
+  fn reset(&mut self) -> &mut Self {
     unsafe { 
       mt19937_destroy(self.pimpl); 
       self.pimpl = mt19937_create(self.seed);
     }
+    self
   }
 
 }
@@ -179,27 +189,63 @@ impl Gen for MT19937 {
 #[link(name = "sobol", kind = "static")]
 extern {
   // SobolData* nlopt_sobol_create(uint32_t sdim)
-  fn nlopt_sobol_create(dim: u32) -> SobolData;
+  fn nlopt_sobol_create(dim: u32) -> SobolImpl;
   // int nlopt_sobol_next(SobolData* s, uint32_t *x)
-  fn nlopt_sobol_next(pimpl: SobolData, dest: &u32) -> i32;
+  fn nlopt_sobol_next(pimpl: SobolImpl, dest: &u32) -> i32;
   // void nlopt_sobol_skip(SobolData* s, uint32_t n, uint32_t *x)
-  fn nlopt_sobol_skip(pimpl: SobolData, skips: u32, dest: &u32) -> ();
+  fn nlopt_sobol_skip(pimpl: SobolImpl, skips: u32, dest: &u32) -> ();
   // void nlopt_sobol_destroy(SobolData* s)
-  fn nlopt_sobol_destroy(pimpl: SobolData) -> ();
+  fn nlopt_sobol_destroy(pimpl: SobolImpl) -> ();
 }
 
 impl Sobol {
-  pub fn new(dim: u32) -> Sobol {
-    Sobol{dim: dim as usize, cache: vec![0; dim as usize], pimpl: unsafe { nlopt_sobol_create(dim) } }
-  }
-
-  pub fn drop(&self) {
+  fn drop(&mut self) {
     unsafe { nlopt_sobol_destroy(self.pimpl); }
   }
+}
 
-  pub fn next_d(&self) -> Vec<f64> {
+
+
+impl QRNG for Sobol {
+  fn new(dim: u32) -> Sobol {
+    let this = Sobol{dim: dim, cache: vec![0; dim as usize], pimpl: unsafe { nlopt_sobol_create(dim) } };
+    // initialise cache
+    unsafe { nlopt_sobol_next(this.pimpl, &this.cache[0]); }
+    this
+  }
+
+  fn next_d(&self) -> Vec<u32> {
+    // clone the cache
+    let result = self.cache.clone();
+    // update
     unsafe { nlopt_sobol_next(self.pimpl, &self.cache[0]); }
-    self.cache.iter().map(|&x| x as f64 / 2.0f64.powi(32)).collect()
+    // return the cloned cache
+    result
+  }
+
+  fn uniforms01(&self) -> Vec<f64> {
+    // calc uniforms
+    let result = self.cache.iter().map(|&x| x as f64 / 2.0f64.powi(32)).collect();
+    // update cache before returning
+    unsafe { nlopt_sobol_next(self.pimpl, &self.cache[0]); };
+    result
+  }
+
+  fn skip(&self, n: u32) -> &Self {
+    println!("{:?}", self.cache);
+    unsafe { nlopt_sobol_skip(self.pimpl, n * self.dim, &self.cache[0]); }
+    println!("{:?}", self.cache);
+    self
+  }
+
+  fn reset(&mut self) -> &mut Self {
+    unsafe { 
+      nlopt_sobol_destroy(self.pimpl); 
+      self.pimpl = nlopt_sobol_create(self.dim);
+      // refresh cache
+      nlopt_sobol_next(self.pimpl, &self.cache[0]);
+    }
+    self
   }
 
 }
@@ -230,19 +276,20 @@ mod test {
   fn test_mt19937() {
     let mut gen = MT19937::new();
     let r = gen.next_n(10);
-    gen.reset();
-    assert_eq!(r, gen.next_n(10));
+    assert_eq!(r, gen.reset().next_n(10));
   }
 
   #[test]
   fn test_sobol() {
     let gen = Sobol::new(8);
     assert_eq!(gen.dim, 8);
-    assert_eq!(gen.next_d(), vec![0.5; 8]);
+    assert_eq!(gen.uniforms01(), vec![0.5; 8]);
 
-    let gen = Sobol::new(2);
+    let mut gen = Sobol::new(2);
     gen.next_d();
-    assert_eq!(gen.next_d(), vec![0.75, 0.25]);
-    assert_eq!(gen.next_d(), vec![0.25, 0.75]);
+    assert_eq!(gen.uniforms01(), vec![0.75, 0.25]);
+    assert_eq!(gen.uniforms01(), vec![0.25, 0.75]);
+    // reset and skip forward
+    assert_eq!(gen.reset().skip(2).uniforms01(), vec![0.25, 0.75])
   }
 }

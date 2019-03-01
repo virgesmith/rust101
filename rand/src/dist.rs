@@ -40,11 +40,11 @@ pub struct Exponential {
   lambda: f64
 }
 
-use crate::gen::Gen;
+use crate::gen::PRNG;
 
 pub trait Dist<T> {
-  fn sample_1(&mut self, rng: &mut impl Gen) -> T;
-  fn sample_n(&mut self, n: usize, rng: &mut impl Gen) -> Vec<T>;
+  fn sample_1(&mut self, rng: &mut impl PRNG) -> T;
+  fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> Vec<T>;
 }
 
 
@@ -55,12 +55,12 @@ impl Discrete {
 }
 
 impl Dist<i32> for Discrete {
-  fn sample_1(&mut self, rng: &mut impl Gen) -> i32 {
+  fn sample_1(&mut self, rng: &mut impl PRNG) -> i32 {
     let i = rng.next_1() as usize % self.v.len(); 
     self.v[i]
   } 
 
-  fn sample_n(&mut self, n: usize, rng: &mut impl Gen) -> Vec<i32> {
+  fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> Vec<i32> {
     (0..n).map(|_| self.v[rng.next_1() as usize % self.v.len()]).collect()
   } 
 }
@@ -77,7 +77,7 @@ impl DiscreteWeighted {
 }
 
 impl Dist<i32> for DiscreteWeighted {
-  fn sample_1(&mut self, rng: &mut impl Gen) -> i32 {
+  fn sample_1(&mut self, rng: &mut impl PRNG) -> i32 {
     let r = rng.uniform01();
     // first element of p > r
     // TODO bisect?
@@ -90,7 +90,7 @@ impl Dist<i32> for DiscreteWeighted {
     panic!("DiscreteWeighted sample failure, is Generator working correctly?");
   } 
 
-  fn sample_n(&mut self, n: usize, rng: &mut impl Gen) -> /*T*/ Vec<i32> {
+  fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> /*T*/ Vec<i32> {
     (0..n).map(|_| self.sample_1(rng)).collect()
   } 
 }
@@ -107,7 +107,7 @@ impl WithoutReplacement {
 }
 
 impl Dist<i32> for WithoutReplacement {
-  fn sample_1(&mut self, rng: &mut impl Gen) -> i32
+  fn sample_1(&mut self, rng: &mut impl PRNG) -> i32
   {
     let mut s = 0;
     let cumul = self.f.iter().fold(Vec::with_capacity(self.f.len()), |mut acc, f| { s += f; acc.push(s); acc });
@@ -122,7 +122,7 @@ impl Dist<i32> for WithoutReplacement {
     panic!("WithoutReplacement sample failure, is Generator working correctly?");
   }
 
-  fn sample_n(&mut self, n: usize, rng: &mut impl Gen) -> /*T*/ Vec<i32> {
+  fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> /*T*/ Vec<i32> {
     (0..n).map(|_| self.sample_1(rng)).collect()
   }
 }
@@ -135,11 +135,11 @@ impl Uniform {
 }
 
 impl Dist<f64> for Uniform {
-  fn sample_1(&mut self, rng: &mut impl Gen) -> f64 {
+  fn sample_1(&mut self, rng: &mut impl PRNG) -> f64 {
     rng.uniform01() * self.s + self.l 
   } 
 
-  fn sample_n(&mut self, n: usize, rng: &mut impl Gen) -> Vec<f64> {
+  fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> Vec<f64> {
     (0..n).map(|_| rng.uniform01() * self.s + self.l).collect()
   } 
 }
@@ -154,7 +154,7 @@ impl Normal {
 impl Dist<f64> for Normal {
   // won't work: impl stricter than trait not allowed
   //fn sample_1<T>(&mut self, rng: &mut T)  -> f64 where T: Gen + Rejectable {
-  fn sample_1(&mut self, rng: &mut impl Gen) -> f64 {
+  fn sample_1(&mut self, rng: &mut impl PRNG) -> f64 {
     if self.is_cached {
       self.is_cached = false;
       return self.cached_val;
@@ -171,7 +171,7 @@ impl Dist<f64> for Normal {
     }
   } 
 
-  fn sample_n(&mut self, n: usize, rng: &mut impl Gen) -> Vec<f64> {
+  fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> Vec<f64> {
     (0..n).map(|_| self.sample_1(rng)).collect()
   } 
 }
@@ -185,11 +185,11 @@ impl Exponential {
 }
 
 impl Dist<f64> for Exponential {
-  fn sample_1(&mut self, rng: &mut impl Gen) -> /*T*/ f64 {
+  fn sample_1(&mut self, rng: &mut impl PRNG) -> /*T*/ f64 {
     -rng.uniform01().ln() / self.lambda 
   } 
 
-  fn sample_n(&mut self, n: usize, rng: &mut impl Gen) -> /*T*/ Vec<f64> {
+  fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> /*T*/ Vec<f64> {
     (0..n).map(|_| -rng.uniform01().ln() / self.lambda).collect()
   } 
 }
