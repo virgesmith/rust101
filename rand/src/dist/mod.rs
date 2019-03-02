@@ -40,7 +40,7 @@ pub struct Exponential {
   lambda: f64
 }
 
-use crate::gen::PRNG;
+use crate::gen::pseudo::*;
 
 pub trait Dist<T> {
   fn sample_1(&mut self, rng: &mut impl PRNG) -> T;
@@ -62,7 +62,7 @@ impl Dist<i32> for Discrete {
   } 
 
   fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> Vec<i32> {
-    (0..n).map(|_| self.v[rng.next_1() as usize % self.v.len()]).collect()
+    (0..n).map(|_| self.sample_1(rng)).collect()
   } 
 }
 
@@ -70,7 +70,8 @@ impl DiscreteWeighted {
   pub fn new(a: &[(i32,f64)]) -> DiscreteWeighted {
     assert!(a.len() > 0);
     let mut s = 0.0;
-    // check probs in [0,1]
+    // check probs in [0,1] (dummy sum)
+    a.iter().fold(0.0, |_, p| { assert!(p.1 >= 0.0 && p.1 <= 1.0); p.1 } );
     let p = a.iter().fold(Vec::with_capacity(a.len()), |mut acc, p| { s += p.1; acc.push(s); acc });
     // check probabilities sum to unity
     assert!(p.last().unwrap().abs() - 1.0 < std::f64::EPSILON);
@@ -144,7 +145,7 @@ impl Dist<f64> for Uniform {
   } 
 
   fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> Vec<f64> {
-    (0..n).map(|_| rng.uniform01() * self.s + self.l).collect()
+    (0..n).map(|_| self.sample_1(rng)).collect()
   } 
 }
 
@@ -186,7 +187,7 @@ impl Dist<f64> for Normal {
   /// ```
   /// // Sample 100 normal variates with zero mean and unit variance 
   /// // using Mersenne Twister as the underlying random number generator
-  /// use rand::gen::*;
+  /// use rand::gen::pseudo::*;
   /// use rand::dist::*;
   /// let mut normdist = Normal::new(0.0, 1.0);
   /// let mut rng = MT19937::new();
@@ -211,7 +212,7 @@ impl Dist<f64> for Exponential {
   } 
 
   fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> /*T*/ Vec<f64> {
-    (0..n).map(|_| -rng.uniform01().ln() / self.lambda).collect()
+    (0..n).map(|_| self.sample_1(rng)).collect()
   } 
 }
 
@@ -298,10 +299,17 @@ mod test {
   }
 
   #[test]
+  #[should_panic]
+  fn test_discrete_weighted_invalid2() {
+    DiscreteWeighted::new(&vec![(1, 0.0),(2, 1.1),(3, -0.1)]);
+  }
+
+  #[test]
   fn test_without_replacement_xorshift() {
     // sample all at once
     {
       let state_occs = (1..=10).map(|i| (i,1)).collect::<Vec<(i32, u32)>>();
+      //let state_occs2 = (1..=10).into_iter().zip(&vec![10;1]).collect::<Vec<(i32, u32)>>();
       let mut dist = WithoutReplacement::new(&state_occs);
       let mut rng = Xorshift64::seed(19937);
       let mut res = dist.sample_n(state_occs.len(), &mut rng);

@@ -7,11 +7,11 @@ use std::path::Path;
 fn main() {
   // ensure lib dir exists
   Command::new("mkdir").args(&["-p", "lib"]).status().unwrap();
-  Command::new("g++").args(&["../src/SobolImpl.cpp", "-c", "-std=c++14", "-g", "-O2", "-fPIC"])
+  Command::new("g++").args(&["../src/ext/SobolImpl.cpp", "-c", "-std=c++14", "-g", "-O2", "-fPIC"])
                      .current_dir("./lib").status().unwrap();
   Command::new("ar").args(&["crus", "./libsobol.a", "./SobolImpl.o"])
                     .current_dir("./lib").status().unwrap();
-  Command::new("g++").args(&["../src/MT19937.cpp", "-c", "-std=c++14", "-g", "-O2", "-fPIC"])
+  Command::new("g++").args(&["../src/ext/MT19937.cpp", "-c", "-std=c++14", "-g", "-O2", "-fPIC"])
                      .current_dir("./lib").status().unwrap();
   Command::new("ar").args(&["crus", "./libmt19937.a", "./MT19937.o"])
                     .current_dir("./lib").status().unwrap();
