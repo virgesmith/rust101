@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 rand = {version = "^0", path = "../rand"}
+number = {version = "^0", path = "../number"}
