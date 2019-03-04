@@ -2,6 +2,7 @@
 
 // mod rand is implicit from project name in Cargo.toml
 // mod gen  is implicit from this filename
+use crate::gen::Rejectable;
 
 /// Pseudorandom generator interface
 pub trait PRNG {
@@ -19,6 +20,8 @@ pub trait PRNG {
   fn uniforms01(&mut self, n: usize) -> Vec<f64>;
   /// Reset the generator to its initial state
   fn reset(&mut self) -> &mut Self;
+  /// Can be used in rejection sampling (default yes)
+  fn rejectable() -> bool { true }
 }
 
 /// Linear congruential generator equivalent to the C++11 minstd_rand 
