@@ -8,3 +8,4 @@ links = "sobol"
 #build = "build.rs"
 
 [dependencies]
+num = "*"
