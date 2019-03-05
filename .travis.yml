@@ -5,19 +5,20 @@
 language: rust
 rust:
   - stable
-  #- nightly
+  - nightly
 
 os:
   - linux
-  #- osx
+  - osx
 
 sudo: false
 addons:
   apt:
     packages:
       # To build C and C++ deps
-      - build-essential
+      - build-essential g++ ar
 
 script:
   - cd number && cargo test --all
+  # link error on static libs
   - cd ../rand && cargo build --verbose --all
