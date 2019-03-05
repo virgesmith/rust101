@@ -20,4 +20,4 @@ addons:
 
 script:
   - cd number && cargo test --all
-  - cd ../rand && cargo test --all
+  - cd ../rand && cargo test --verbose --all
