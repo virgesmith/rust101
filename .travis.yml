@@ -16,9 +16,9 @@ addons:
   apt:
     packages:
       # To build C and C++ deps
-      - build-essential g++ ar
+      - build-essential g++
 
 script:
   - cd number && cargo test --all
   # link error on static libs
-  - cd ../rand && cargo build --verbose --all
+  - cd ../rand && cargo build --verbose --all && cargo test --all
