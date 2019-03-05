@@ -1,5 +1,5 @@
 
-![https://travis-ci.org/virgesmith/rust101.svg?branch=master](https://travis-ci.org/virgesmith/rust101.svg?branch=master)
+[![Travis Build Status](https://travis-ci.org/virgesmith/rust101.svg?branch=master)](https://travis-ci.org/virgesmith/rust101)
 
 # rust 101
 Learning rust...(work in progress) with the help of [codewars](https://www.codewars.com):
