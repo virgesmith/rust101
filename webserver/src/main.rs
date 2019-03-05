@@ -7,8 +7,8 @@ extern crate simple_server;
 use simple_server::{Method, Server, StatusCode};
 
 fn main() {
-  let host = "127.0.0.1";
-  let port = "8080";
+  let host = "localhost";
+  let port = 8080;
 
   let server = Server::new(|request, mut response| {
     println!("Request received. {} {}", request.method(), request.uri());
@@ -22,7 +22,7 @@ fn main() {
           // read the whole file
           file.read_to_end(&mut content)?;
           Ok(response.body(content)?)
-        } else {
+        } else { 
           response.status(StatusCode::NOT_FOUND);
           Ok(response.body("<h1>404</h1><p>Not found!<p>\n".as_bytes().to_vec())?)
         }
@@ -36,10 +36,11 @@ fn main() {
         Ok(response.body(format!("<p>POST: .{}</p>\n", request.uri().path()).as_bytes().to_vec())?)
       }
       _ => {
-        response.status(StatusCode::NOT_FOUND);
-        Ok(response.body("<h1>404</h1><p>Not found!<p>\n".as_bytes().to_vec())?)
+        response.status(StatusCode::FORBIDDEN);
+        Ok(response.body("<h1>403</h1><p>Not found!<p>\n".as_bytes().to_vec())?)
       }
     }
   });
-  server.listen(host, port);
+  println!("Server at {} listening on port {}", host, port);
+  server.listen(host, &port.to_string());
 }
