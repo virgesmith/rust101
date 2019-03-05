@@ -11,7 +11,7 @@ pub fn p2pkh(pubkey: &[u8]) -> String {
   data.insert(0, 0);
   let check = hash256(&data);
   // append checksum...
-  let addr = [&data[..], &check[0..4]].concat();
+  let addr = [&data, &check[0..4]].concat();
   base58::from_bytes(addr)
 }
 
@@ -24,7 +24,7 @@ pub fn wif(prvkey: Vec<u8>) -> String {
   data.push(1);
   // append checksum
   let check = hash256(&data);
-  let wif = [&data[..], &check[0..4]].concat();
+  let wif = [&data, &check[0..4]].concat();
   base58::from_bytes(wif)
 }
 
