@@ -2,7 +2,7 @@
 
 // mod rand is implicit from project name in Cargo.toml
 // mod gen  is implicit from this filename
-use crate::gen::Rejectable;
+//use crate::gen::Rejectable;
 
 /// Pseudorandom generator interface
 pub trait PRNG {
