@@ -92,6 +92,7 @@ impl QRNG for Sobol {
 
 }
 
+#[cfg(test)]
 mod test {
   use super::*;
 
@@ -110,6 +111,7 @@ mod test {
 
     let mut gen = Sobol::new(1111);
     assert_eq!(gen.uniforms01(), vec![0.5; 1111]);
+    assert_eq!(gen.reset().uniforms01(), vec![0.5; 1111]);
   }
 
   #[test]

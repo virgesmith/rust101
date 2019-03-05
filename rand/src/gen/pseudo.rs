@@ -178,6 +178,7 @@ impl PRNG for MT19937 {
 
 }
 
+#[cfg(test)]
 mod test {
   use super::*;
 

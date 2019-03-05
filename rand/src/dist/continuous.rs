@@ -1,4 +1,5 @@
 
+use crate::dist::*;
 
 #[derive(Debug)]
 pub struct Uniform {
@@ -18,13 +19,6 @@ pub struct Normal {
 #[derive(Debug)]
 pub struct Exponential {
   lambda: f64
-}
-
-use crate::gen::pseudo::*;
-
-pub trait Dist<T> {
-  fn sample_1(&mut self, rng: &mut impl PRNG) -> T;
-  fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> Vec<T>;
 }
 
 impl Uniform {
@@ -83,6 +77,7 @@ impl Dist<f64> for Normal {
   /// // Sample 100 normal variates with zero mean and unit variance 
   /// // using Mersenne Twister as the underlying random number generator
   /// use rand::gen::pseudo::*;
+  /// use rand::dist::Dist;
   /// use rand::dist::continuous::*;
   /// let mut normdist = Normal::new(0.0, 1.0);
   /// let mut rng = MT19937::new();
@@ -102,6 +97,7 @@ impl Exponential {
 }
 
 impl Dist<f64> for Exponential {
+
   fn sample_1(&mut self, rng: &mut impl PRNG) -> /*T*/ f64 {
     -rng.uniform01().ln() / self.lambda 
   } 
@@ -111,13 +107,12 @@ impl Dist<f64> for Exponential {
   } 
 }
 
-
+#[cfg(test)]
 mod test {
   use super::*;
-  use crate::gen::*;
+  //use crate::gen::*;
 
   const TRIALS: usize = 60000;
-
 
   #[test]
   fn test_uniform_lcg() {

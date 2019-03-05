@@ -1,4 +1,4 @@
-use crate::gen::pseudo::PRNG;
+use crate::gen::pseudo::*;
 
 pub trait Dist<T> {
   fn sample_1(&mut self, rng: &mut impl PRNG) -> T;

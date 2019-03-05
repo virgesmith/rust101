@@ -23,8 +23,6 @@ pub struct WithoutReplacement<T> {
   f: Vec<u32>
 }
 
-use crate::gen::pseudo::*;
-
 impl<T: Num + Clone + Copy> Discrete<T> {
   pub fn new(a: &[T]) -> Discrete<T> {
     assert!(a.len() > 0);
@@ -109,9 +107,10 @@ impl<T: Num + Clone + Copy> Dist<T> for WithoutReplacement<T> {
   }
 }
 
+#[cfg(test)]
 mod test {
   use super::*;
-  use crate::gen::*;
+  //use crate::gen::*;
 
   const TRIALS: usize = 60000;
 
