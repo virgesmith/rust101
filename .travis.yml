@@ -25,4 +25,6 @@ addons:
 script:
   - cd number && cargo test --all
   # link error on static libs
+  - sudo ln -s /usr/bin/g++-6 /usr/local/bin/g++
+  - g++ --dumpversion
   - cd ../rand && cargo build --verbose --all && cargo test --all
