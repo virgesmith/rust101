@@ -23,7 +23,8 @@ addons:
       - g++-6
 
 script:
-  - cd number && cargo test --all
+  - cd number && cargo test --all --relase
+  - cd ../vanity && cargo test --all --release
   # link error on static libs
   - sudo ln -s /usr/bin/g++-6 /usr/local/bin/g++
-  - cd ../rand && cargo build --verbose --all && cargo test --all
+  - cd ../rand && cargo cargo test --all --release
