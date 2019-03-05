@@ -1,3 +1,23 @@
+#language: rust
+#script:
+#  - cd number && cargo test --all --release
+
 language: rust
+rust:
+  - stable
+  #- nightly
+
+os:
+  - linux
+  #- osx
+
+sudo: false
+addons:
+  apt:
+    packages:
+      # To build C and C++ deps
+      - build-essential
+
 script:
-  - cd number && cargo test --all --release
+  - cd number && cargo test --all
+  - cd ../rand && cargo test --all
