@@ -11,12 +11,16 @@ os:
   - linux
   - osx
 
-sudo: false
+sudo: required
 addons:
   apt:
+    # packages:
+    #   # To build C and C++ deps
+    #   - build-essential g++
+    sources:
+      - ubuntu-toolchain-r-test
     packages:
-      # To build C and C++ deps
-      - build-essential g++
+      - g++-6
 
 script:
   - cd number && cargo test --all
