@@ -7,3 +7,4 @@ pub trait Dist<T> {
 
 pub mod discrete;
 pub mod continuous;
+mod normal;

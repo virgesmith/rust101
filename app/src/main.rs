@@ -1,6 +1,8 @@
 use rand::gen::pseudo::*;
 use rand::gen::quasi::*;
 use rand::dist::*;
+use rand::dist::discrete::*;
+use rand::dist::continuous::*;
 use number::Number; //::{R,C,Inf};
 use number::{abs, sqrt, ln};
 
