@@ -1,4 +1,5 @@
 use crate::gen::pseudo::*;
+use crate::gen::quasi::*;
 
 pub trait Dist<T> {
   fn sample_1(&mut self, rng: &mut impl PRNG) -> T;
@@ -7,4 +8,4 @@ pub trait Dist<T> {
 
 pub mod discrete;
 pub mod continuous;
-mod normal;
+pub mod normal;

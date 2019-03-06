@@ -1,5 +1,6 @@
 
 use crate::dist::*;
+use crate::dist::normal::*;
 
 #[derive(Debug)]
 pub struct Uniform {
@@ -8,12 +9,10 @@ pub struct Uniform {
 }
 
 #[derive(Debug)]
-pub struct Normal {
+pub struct Normal<T> {
   mu: f64,
   sigma: f64, 
-  // for Box-Muller
-  is_cached: bool,
-  cached_val: f64
+  transform: T
 }
 
 #[derive(Debug)]
@@ -38,31 +37,18 @@ impl Dist<f64> for Uniform {
   } 
 }
 
-impl Normal {
-  pub fn new(mean: f64, variance: f64) -> Normal {
+impl<T: NormalTransformation> Normal<T> {
+  pub fn new(mean: f64, variance: f64) -> Normal<T> {
     assert!(variance > 0.0);
-    Normal{mu: mean, sigma: variance.sqrt(), is_cached: false, cached_val: std::f64::NAN }
+    Normal{mu: mean, sigma: variance.sqrt(), transform: T::new() }
   }
 }
 
-impl Dist<f64> for Normal {
+impl<T: NormalTransformation> Dist<f64> for Normal<T> {
   // won't work: impl stricter than trait not allowed
   //fn sample_1<T>(&mut self, rng: &mut T)  -> f64 where T: Gen + Rejectable {
   fn sample_1(&mut self, rng: &mut impl PRNG) -> f64 {
-    if self.is_cached {
-      self.is_cached = false;
-      return self.cached_val;
-    }
-    loop {
-      let (x,y) = (rng.uniform01() * 2.0 - 1.0, rng.uniform01() * 2.0 - 1.0);
-      let s = x*x + y*y;
-      if s > 0.0 && s < 1.0 {
-        let m = (-2.0 * s.ln() / s).sqrt();
-        self.is_cached = true;
-        self.cached_val = self.mu + self.sigma * y * m;
-        return self.mu + self.sigma * x * m;
-      }
-    }
+    self.mu + self.sigma * self.transform.get(rng)
   } 
 
   /// Returns a vector of n normal variates
@@ -76,10 +62,12 @@ impl Dist<f64> for Normal {
   /// ```
   /// // Sample 100 normal variates with zero mean and unit variance 
   /// // using Mersenne Twister as the underlying random number generator
+  /// // with Marsaglia's polar transformation to convert to normal
   /// use rand::gen::pseudo::*;
   /// use rand::dist::Dist;
   /// use rand::dist::continuous::*;
-  /// let mut normdist = Normal::new(0.0, 1.0);
+  /// use rand::dist::normal::*;
+  /// let mut normdist = Normal::<Polar>::new(0.0, 1.0);
   /// let mut rng = MT19937::new();
   /// let v = normdist.sample_n(100, &mut rng);
   /// ```
@@ -161,7 +149,7 @@ mod test {
     // test variance from 1e-5 to 1e+5
     for i in -5..=5 { 
       let var = 10.0f64.powi(i);
-      let mut e = Normal::new(0.0, var);
+      let mut e = Normal::<Polar>::new(0.0, var);
       let mut rand = Xorshift64::seed(19937);
       let mu: f64 = e.sample_n(TRIALS, &mut rand).iter().sum::<f64>() / (TRIALS as f64);
       // mean should be 0.0 +/- 
@@ -172,6 +160,23 @@ mod test {
   #[test]
   #[should_panic]
   fn test_normal_invalid() {
-    Normal::new(0.0, 0.0);
+    Normal::<Polar>::new(0.0, 0.0);
   }
+
+  // #[test]
+  // #[should_panic]
+  // fn test_normal_invalid_combination() {
+  //   // can't use rejection sampling with quasirandom generator
+  //   let mut dist = Normal::<Polar>::new(0.0, 1.0);
+  //   let mut rng = Sobol::new(1);
+  //   let x = dist.sample_n(1, &mut rng);
+  // }
+
+  // #[test]
+  // fn test_normal_quasi() {
+  //   // can't use rejection sampling with quasirandom generator
+  //   let mut dist = Normal::<InverseCumulative>::new(0.0, 1.0);
+  //   let mut rng = Sobol::new(1);
+  //   let x = dist.sample_n(1, &mut rng);
+  // }
 }
