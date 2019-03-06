@@ -3,21 +3,10 @@
 // mod rand is implicit from project name in Cargo.toml
 // mod gen  is implicit from the path
 // mod quasi is implicit from the filename
+use crate::gen::*;
 
-
-/// Quasirandom generator interface
-pub trait QRNG {
-  // Initialise using dimension d
-  fn new(dim: u32) -> Self;
-  /// Return next integers in the sequence (one per dimension)
-  fn next_d(&self) -> Vec<u32>;
-  /// Return next integers in the sequence (one per dimension)
-  fn uniforms01(&self) -> Vec<f64>;
-  /// Skip n values in the sequence (n * dimension values)
-  fn skip(&self, n: u32) -> &Self;
-  /// Reset the generator to its initial state
-  fn reset(&mut self) -> &mut Self;
-}
+/// Quasirandom generator trait composition
+pub trait QRNG: RandomStream + Dimensioned + Resettable { }
 
 /// untyped pointer to C struct. rust doesnt need to know the type as it doesnt directly access the object
 type SobolImpl = *const std::ffi::c_void;
@@ -47,7 +36,7 @@ impl Drop for Sobol {
   }
 }
 
-impl QRNG for Sobol {
+impl Dimensioned for Sobol {
   fn new(dim: u32) -> Sobol {
     assert!(dim > 0 && dim <= unsafe {sobol_maxdim()});
     let this = Sobol{dim: dim, cache: vec![0; dim as usize], pimpl: unsafe { nlopt_sobol_create(dim) } };
@@ -55,8 +44,11 @@ impl QRNG for Sobol {
     unsafe { nlopt_sobol_next(this.pimpl, &this.cache[0]); }
     this
   }
+}
 
-  fn next_d(&self) -> Vec<u32> {
+impl RandomStream for Sobol {
+  fn next_n(&mut self, n: usize) -> Vec<u32> {
+    assert_eq!(n, self.cache.len());
     // clone the cache
     let result = self.cache.clone();
     // update
@@ -65,7 +57,8 @@ impl QRNG for Sobol {
     result
   }
 
-  fn uniforms01(&self) -> Vec<f64> {
+  fn uniforms01(&mut self, n: usize) -> Vec<f64> {
+    assert_eq!(n, self.cache.len());
     // calc uniforms
     let result = self.cache.iter().map(|&x| x as f64 / 2.0f64.powi(32)).collect();
     // update cache before returning
@@ -73,13 +66,9 @@ impl QRNG for Sobol {
     result
   }
 
-  fn skip(&self, n: u32) -> &Self {
-    println!("{:?}", self.cache);
-    unsafe { nlopt_sobol_skip(self.pimpl, n * self.dim, &self.cache[0]); }
-    println!("{:?}", self.cache);
-    self
-  }
+}
 
+impl Resettable for Sobol {
   fn reset(&mut self) -> &mut Self {
     unsafe { 
       nlopt_sobol_destroy(self.pimpl); 
@@ -90,6 +79,12 @@ impl QRNG for Sobol {
     self
   }
 
+  fn skip(&mut self, n: u32) -> &mut Self {
+    println!("{:?}", self.cache);
+    unsafe { nlopt_sobol_skip(self.pimpl, n * self.dim, &self.cache[0]); }
+    println!("{:?}", self.cache);
+    self
+  }
 }
 
 #[cfg(test)]
@@ -98,20 +93,20 @@ mod test {
 
   #[test]
   fn test_sobol() {
-    let gen = Sobol::new(8);
+    let mut gen = Sobol::new(8);
     assert_eq!(gen.dim, 8);
-    assert_eq!(gen.uniforms01(), vec![0.5; 8]);
+    assert_eq!(gen.uniforms01(8), vec![0.5; 8]);
 
     let mut gen = Sobol::new(2);
-    gen.next_d();
-    assert_eq!(gen.uniforms01(), vec![0.75, 0.25]);
-    assert_eq!(gen.uniforms01(), vec![0.25, 0.75]);
+    gen.next_n(2);
+    assert_eq!(gen.uniforms01(2), vec![0.75, 0.25]);
+    assert_eq!(gen.uniforms01(2), vec![0.25, 0.75]);
     // reset and skip forward
-    assert_eq!(gen.reset().skip(2).uniforms01(), vec![0.25, 0.75]);
+    assert_eq!(gen.reset().skip(2).uniforms01(2), vec![0.25, 0.75]);
 
     let mut gen = Sobol::new(1111);
-    assert_eq!(gen.uniforms01(), vec![0.5; 1111]);
-    assert_eq!(gen.reset().uniforms01(), vec![0.5; 1111]);
+    assert_eq!(gen.uniforms01(1111), vec![0.5; 1111]);
+    assert_eq!(gen.reset().uniforms01(1111), vec![0.5; 1111]);
   }
 
   #[test]

@@ -68,14 +68,14 @@ impl<T: NormalTransformation> Dist<f64> for Normal<T> {
   /// use rand::dist::continuous::*;
   /// use rand::dist::normal::*;
   /// let mut normdist = Normal::<Polar>::new(0.0, 1.0);
-  /// let mut rng = MT19937::new();
+  /// // init Mersenne Twister using system clock
+  /// let mut rng = MT19937::new(None);
   /// let v = normdist.sample_n(100, &mut rng);
   /// ```
   fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> Vec<f64> {
     (0..n).map(|_| self.sample_1(rng)).collect()
   } 
 }
-
 
 impl Exponential {
   pub fn new(lambda: f64) -> Exponential {
@@ -105,7 +105,7 @@ mod test {
   #[test]
   fn test_uniform_lcg() {
     let mut u = Uniform::new(-1.0, 1.0);
-    let mut rand = LCG::seed(19937);
+    let mut rand = LCG::new(Some(19937));
     let mu: f64 = u.sample_n(TRIALS, &mut rand).iter().sum::<f64>() / (TRIALS as f64);
     assert!(mu.abs() < (TRIALS as f64).sqrt());
   }
@@ -113,7 +113,7 @@ mod test {
   #[test]
   fn test_uniform_xorshift() {
     let mut u = Uniform::new(-1.0, 1.0);
-    let mut rand = Xorshift64::seed(19937);
+    let mut rand = Xorshift64::new(Some(19937));
     let mu: f64 = u.sample_n(TRIALS, &mut rand).iter().sum::<f64>() / (TRIALS as f64);
     assert!(mu.abs() < (TRIALS as f64).sqrt());
   }
@@ -130,7 +130,7 @@ mod test {
     for i in -5..6 { 
       let k = 10.0f64.powi(i);
       let mut e = Exponential::new(k);
-      let mut rand = Xorshift64::seed(19937);
+      let mut rand = Xorshift64::new(Some(19937));
       let mu: f64 = e.sample_n(TRIALS, &mut rand).iter().sum::<f64>() / (TRIALS as f64);
       println!("{} {}", mu, 1.0/k);
       // mean should be 1/k
@@ -150,7 +150,7 @@ mod test {
     for i in -5..=5 { 
       let var = 10.0f64.powi(i);
       let mut e = Normal::<Polar>::new(0.0, var);
-      let mut rand = Xorshift64::seed(19937);
+      let mut rand = Xorshift64::new(Some(19937));
       let mu: f64 = e.sample_n(TRIALS, &mut rand).iter().sum::<f64>() / (TRIALS as f64);
       // mean should be 0.0 +/- 
       assert!(mu.abs() < (var / (TRIALS as f64)).sqrt());

@@ -159,7 +159,7 @@ mod test {
     }
 
     let mut acklam = InverseCumulative::new();
-    let mut rng = MT19937::seed(77027465);
+    let mut rng = MT19937::new(Some(19937));
     let v = (0..N).map(|_| acklam.get(&mut rng)).collect::<Vec<f64>>();
     assert!(v.iter().sum::<f64>() < 1.0 / (N as f64).sqrt());
   }

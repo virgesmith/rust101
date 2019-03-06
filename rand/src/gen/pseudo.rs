@@ -2,14 +2,12 @@
 
 // mod rand is implicit from project name in Cargo.toml
 // mod gen  is implicit from this filename
-//use crate::gen::Rejectable;
+use crate::gen::*;
 
 /// Pseudorandom generator interface
-pub trait PRNG {
+pub trait PRNG { //: RandomStream + Seeded + Dimensionless + Rejectable {
   /// Initialise using clock as seed
-  fn new() -> Self;
-  /// Initialise using explicit value
-  fn seed(s: u32) -> Self;
+  fn new(seed: Option<u32>) -> Self;
   /// Return next integer in the sequence
   fn next_1(&mut self) -> u32;
   /// Return next n integers in the sequence
@@ -44,7 +42,14 @@ pub struct MT19937 {
   pimpl: MT19937Impl
 }
 
-use std::time::{SystemTime, UNIX_EPOCH};
+// get seed if specified otherwise use system clock
+fn get_seed(seed: Option<u32>) -> u32 {
+  use std::time::{SystemTime, UNIX_EPOCH};
+  match seed {
+    Some(val) => val,
+    None => SystemTime::now().duration_since(UNIX_EPOCH).unwrap().subsec_nanos()
+  }
+}
 
 // private 
 impl LCG {
@@ -54,13 +59,10 @@ impl LCG {
 
 // public
 impl PRNG for LCG {
-  fn new() -> LCG {
-    LCG::seed(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().subsec_nanos())   
-  }
-
-  fn seed(seed: u32) -> LCG {
+  fn new(seed: Option<u32>) -> LCG {
+    let seed = get_seed(seed);
     assert_ne!(seed, 0);
-    LCG{s: seed, r: seed}
+    LCG{s: seed, r: seed}   
   }
 
   fn next_1(&mut self) -> u32 {
@@ -89,11 +91,8 @@ impl PRNG for LCG {
 impl Xorshift64 { }
 
 impl PRNG for Xorshift64 {
-  fn new() -> Xorshift64 {
-    Xorshift64::seed(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().subsec_nanos())   
-  }
-
-  fn seed(seed: u32) -> Xorshift64 {
+  fn new(seed: Option<u32>) -> Xorshift64 {
+    let seed = get_seed(seed);
     let seed = ((seed as u64) << 32) | (seed as u64);
     assert_ne!(seed, 0);
     Xorshift64{s: seed, r: seed}
@@ -144,11 +143,8 @@ impl Drop for MT19937 {
 }
 
 impl PRNG for MT19937 {
-  fn new() -> MT19937 {
-    MT19937::seed(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().subsec_nanos())   
-  }
-
-  fn seed(seed: u32) -> MT19937 {
+  fn new(seed: Option<u32>) -> MT19937 {
+    let seed = get_seed(seed);
     unsafe { MT19937{seed:seed, pimpl: mt19937_create(seed)} }
   }
 
@@ -185,7 +181,7 @@ mod test {
   const TRIALS: usize = 10000;
   #[test]
   fn test_lcg() {
-    let mut gen = LCG::seed(1);
+    let mut gen = LCG::new(Some(1));
     assert_eq!(gen.next_1(), LCG::A as u32);
 
     let mean: f64 = gen.uniforms01(TRIALS).iter().sum::<f64>() / (TRIALS as f64);
@@ -195,12 +191,12 @@ mod test {
   #[test]
   #[should_panic]
   fn test_lcg_failures() {
-    LCG::seed(0);
+    LCG::new(Some(0));
   }
 
   #[test]
   fn test_xorshift64() {
-    let mut gen = Xorshift64::seed(1);
+    let mut gen = Xorshift64::new(Some(1));
     assert_eq!(gen.next_1(), 1115824193);
 
     let mean: f64 = gen.uniforms01(TRIALS).iter().sum::<f64>() / (TRIALS as f64);
@@ -210,12 +206,12 @@ mod test {
   #[test]
   #[should_panic]
   fn test_xorshift64_failures() {
-    Xorshift64::seed(0);
+    Xorshift64::new(Some(0));
   }  
 
   #[test]
   fn test_mt19937() {
-    let mut gen = MT19937::new();
+    let mut gen = MT19937::new(None);
     let r = gen.next_n(10);
     assert_eq!(r, gen.reset().next_n(10));
   }

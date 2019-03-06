@@ -118,7 +118,7 @@ mod test {
   fn test_discrete_lcg() {
     let mut h = vec![0; 6];
     let mut die = Discrete::new(&vec![1,2,3,4,5,6]);
-    let mut rand = LCG::seed(19937);
+    let mut rand = LCG::new(Some(19937));
     let r = die.sample_n(TRIALS, &mut rand);
     for i in 0..TRIALS {
       h[r[i] as usize - 1] += 1;
@@ -141,7 +141,7 @@ mod test {
   fn test_discrete_xorshift() {
     let mut h = vec![0; 6];
     let mut die = Discrete::new(&vec![1,2,3,4,5,6]);
-    let mut rand = Xorshift64::seed(19937);
+    let mut rand = Xorshift64::new(Some(19937));
     for _ in 0..TRIALS {
       h[die.sample_1(&mut rand) as usize-1] += 1;
     }
@@ -157,7 +157,7 @@ mod test {
     let mut h = vec![0; 6];
     let p = 1.0 / 6.0;
     let mut fair_die = DiscreteWeighted::new(&vec![(1, p), (2, p), (3, p), (4, p), (5, p), (6, p)]);
-    let mut rand = Xorshift64::seed(19937);
+    let mut rand = Xorshift64::new(Some(19937));
     for _ in 0..TRIALS {
       h[fair_die.sample_1(&mut rand) as usize-1] += 1;
     }
@@ -172,7 +172,7 @@ mod test {
   fn test_discrete_weighted_xorshift() {
     let mut h = vec![0; 6];
     let mut fair_die = DiscreteWeighted::new(&vec![(1, 0.5), (2, 0.1), (3, 0.1), (4, 0.1), (5, 0.1), (6, 0.1)]);
-    let mut rand = Xorshift64::seed(19937);
+    let mut rand = Xorshift64::new(Some(19937));
     for _ in 0..TRIALS {
       h[fair_die.sample_1(&mut rand) as usize-1] += 1;
     }
@@ -204,7 +204,7 @@ mod test {
       let state_occs = (1..=10).map(|i| (i,1)).collect::<Vec<(i32, u32)>>();
       //let state_occs2 = (1..=10).into_iter().zip(&vec![10;1]).collect::<Vec<(i32, u32)>>();
       let mut dist = WithoutReplacement::new(&state_occs);
-      let mut rng = Xorshift64::seed(19937);
+      let mut rng = Xorshift64::new(Some(19937));
       let mut res = dist.sample_n(state_occs.len(), &mut rng);
       res.sort();
       assert_eq!(res, state_occs.iter().map(|&(v,_)| v).collect::<Vec<i32>>());
@@ -213,7 +213,7 @@ mod test {
     {
       let state_occs = (1..=10).map(|i| (i,1)).collect::<Vec<(i32, u32)>>();
       let mut dist = WithoutReplacement::new(&state_occs);
-      let mut rng = Xorshift64::seed(19937);
+      let mut rng = Xorshift64::new(Some(19937));
       let mut res = Vec::with_capacity(state_occs.len());
       while !dist.empty() {
         res.push(dist.sample_1(&mut rng));
