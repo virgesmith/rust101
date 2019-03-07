@@ -28,11 +28,11 @@ impl Uniform {
 }
 
 impl Dist<f64> for Uniform {
-  fn sample_1(&mut self, rng: &mut impl PRNG) -> f64 {
+  fn sample_1<R: RandomStream + Dimensionless>(&mut self, rng: &mut R) -> f64 {
     rng.uniform01() * self.s + self.l 
   } 
 
-  fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> Vec<f64> {
+  fn sample_n<R: RandomStream + Dimensionless>(&mut self, n: usize, rng: &mut R) -> Vec<f64> {
     (0..n).map(|_| self.sample_1(rng)).collect()
   } 
 }
@@ -45,9 +45,8 @@ impl<T: NormalTransformation> Normal<T> {
 }
 
 impl<T: NormalTransformation> Dist<f64> for Normal<T> {
-  // won't work: impl stricter than trait not allowed
-  //fn sample_1<T>(&mut self, rng: &mut T)  -> f64 where T: Gen + Rejectable {
-  fn sample_1(&mut self, rng: &mut impl PRNG) -> f64 {
+
+  fn sample_1<R: RandomStream + Dimensionless>(&mut self, rng: &mut R) -> f64 {
     self.mu + self.sigma * self.transform.get(rng)
   } 
 
@@ -63,16 +62,14 @@ impl<T: NormalTransformation> Dist<f64> for Normal<T> {
   /// // Sample 100 normal variates with zero mean and unit variance 
   /// // using Mersenne Twister as the underlying random number generator
   /// // with Marsaglia's polar transformation to convert to normal
-  /// use rand::gen::pseudo::*;
-  /// use rand::dist::Dist;
-  /// use rand::dist::continuous::*;
-  /// use rand::dist::normal::*;
+  /// use rand::gen::{*, pseudo::*};
+  /// use rand::dist::{Dist, continuous::*, normal::*};
   /// let mut normdist = Normal::<Polar>::new(0.0, 1.0);
   /// // init Mersenne Twister using system clock
   /// let mut rng = MT19937::new(None);
   /// let v = normdist.sample_n(100, &mut rng);
   /// ```
-  fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> Vec<f64> {
+  fn sample_n<R: RandomStream + Dimensionless>(&mut self, n: usize, rng: &mut R) -> Vec<f64> {
     (0..n).map(|_| self.sample_1(rng)).collect()
   } 
 }
@@ -85,12 +82,11 @@ impl Exponential {
 }
 
 impl Dist<f64> for Exponential {
-
-  fn sample_1(&mut self, rng: &mut impl PRNG) -> /*T*/ f64 {
+  fn sample_1<R: RandomStream + Dimensionless>(&mut self, rng: &mut R) -> f64 {
     -rng.uniform01().ln() / self.lambda 
   } 
 
-  fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> /*T*/ Vec<f64> {
+  fn sample_n<R: RandomStream + Dimensionless>(&mut self, n: usize, rng: &mut R) -> Vec<f64> {
     (0..n).map(|_| self.sample_1(rng)).collect()
   } 
 }
@@ -98,7 +94,6 @@ impl Dist<f64> for Exponential {
 #[cfg(test)]
 mod test {
   use super::*;
-  //use crate::gen::*;
 
   const TRIALS: usize = 60000;
 

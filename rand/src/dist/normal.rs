@@ -1,10 +1,11 @@
 // Algorithms to transform uniform variates to normal 
+use crate::gen::*;
 use crate::gen::pseudo::*;
-//use crate::gen::quasi::*;
+use crate::gen::quasi::*;
 
 pub trait NormalTransformation {
   fn new() -> Self;
-  fn get(&mut self, rng: &mut impl PRNG) -> f64; 
+  fn get<R: RandomStream + Dimensionless>(&mut self, rng: &mut R) -> f64; 
   //fn get_d(&mut self, &mut impl QRNG); 
 }
 
@@ -23,7 +24,7 @@ impl NormalTransformation for Polar {
     Polar{is_cached: false, cached_val: std::f64::NAN}
   }
 
-  fn get(&mut self, rng: &mut impl PRNG) -> f64 {
+  fn get<R: RandomStream + Dimensionless>(&mut self, rng: &mut R) -> f64 {
     if self.is_cached {
       self.is_cached = false;
       return self.cached_val;
@@ -133,7 +134,7 @@ impl NormalTransformation for InverseCumulative {
     InverseCumulative{ }
   }
 
-  fn get(&mut self, rng: &mut impl PRNG) -> f64 {
+  fn get<R: RandomStream + Dimensionless>(&mut self, rng: &mut R) -> f64 {
     InverseCumulative::inv_cdf(rng.uniform01())
   }
 }

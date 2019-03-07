@@ -3,6 +3,7 @@ extern crate num;
 use num::Num;
 
 use crate::dist::*;
+use crate::gen::*;
 
 #[derive(Debug)]
 // TODO template
@@ -30,13 +31,17 @@ impl<T: Num + Clone + Copy> Discrete<T> {
   }
 }
 
+
+//  fn sample_n<R: RandomStream + Resettable>(&mut self, n: usize, rng: &mut R) -> f64
+
 impl<T: Num + Clone + Copy> Dist<T> for Discrete<T> {
-  fn sample_1(&mut self, rng: &mut impl PRNG) -> T {
+  fn sample_1<R: RandomStream + Dimensionless>(&mut self, rng: &mut R) -> T {
     let i = rng.next_1() as usize % self.v.len(); 
     self.v[i] // cannot move out of borrowed context without Copy trait bound
   } 
 
-  fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> Vec<T> {
+  // TODO remove dimensionless requirement
+  fn sample_n<R: RandomStream + Dimensionless>(&mut self, n: usize, rng: &mut R) -> Vec<T> {
     (0..n).map(|_| self.sample_1(rng)).collect()
   } 
 }
@@ -56,7 +61,7 @@ impl<T: Num + Clone + Copy> DiscreteWeighted<T> {
 }
 
 impl<T: Num + Clone + Copy> Dist<T> for DiscreteWeighted<T> {
-  fn sample_1(&mut self, rng: &mut impl PRNG) -> T {
+  fn sample_1<R: RandomStream + Dimensionless>(&mut self, rng: &mut R) -> T {
     let r = rng.uniform01();
     // first element of p > r
     // TODO bisect?
@@ -69,7 +74,7 @@ impl<T: Num + Clone + Copy> Dist<T> for DiscreteWeighted<T> {
     panic!("DiscreteWeighted sample failure, is Generator working correctly?");
   } 
 
-  fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> /*T*/ Vec<T> {
+  fn sample_n<R: RandomStream + Dimensionless>(&mut self, n: usize, rng: &mut R) -> Vec<T> {
     (0..n).map(|_| self.sample_1(rng)).collect()
   } 
 }
@@ -87,7 +92,7 @@ impl<T: Num + Clone + Copy> WithoutReplacement<T> {
 }
 
 impl<T: Num + Clone + Copy> Dist<T> for WithoutReplacement<T> {
-  fn sample_1(&mut self, rng: &mut impl PRNG) -> T
+  fn sample_1<R: RandomStream + Dimensionless>(&mut self, rng: &mut R) -> T
   {
     let mut s = 0;
     let cumul = self.f.iter().fold(Vec::with_capacity(self.f.len()), |mut acc, f| { s += f; acc.push(s); acc });
@@ -102,7 +107,7 @@ impl<T: Num + Clone + Copy> Dist<T> for WithoutReplacement<T> {
     panic!("WithoutReplacement sample failure, is Generator working correctly?");
   }
 
-  fn sample_n(&mut self, n: usize, rng: &mut impl PRNG) -> Vec<T> {
+  fn sample_n<R: RandomStream + Dimensionless>(&mut self, n: usize, rng: &mut R) -> Vec<T> {
     (0..n).map(|_| self.sample_1(rng)).collect()
   }
 }
@@ -229,5 +234,4 @@ mod test {
     let v: Vec<(u32, u32)> = vec![];
     WithoutReplacement::new(&v);
   }
-
 }

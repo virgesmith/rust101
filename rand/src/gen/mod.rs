@@ -13,8 +13,6 @@ pub trait Seeded {
 }
 
 pub trait Dimensionless {
-  /// initialises from a random seed (the time)
-  fn new() -> Self;
   /// return n integers (u32)
   fn next_1(&mut self) -> u32;
   /// return n doubles
