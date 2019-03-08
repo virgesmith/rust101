@@ -5,9 +5,6 @@
 // mod quasi is implicit from the filename
 use crate::gen::*;
 
-/// Quasirandom generator trait composition
-pub trait QRNG: RandomStream + Dimensioned + Resettable { }
-
 /// untyped pointer to C struct. rust doesnt need to know the type as it doesnt directly access the object
 type SobolImpl = *const std::ffi::c_void;
 pub struct Sobol {
@@ -94,8 +91,6 @@ impl Resettable for Sobol {
     self
   }
 }
-
-
 
 #[cfg(test)]
 mod test {

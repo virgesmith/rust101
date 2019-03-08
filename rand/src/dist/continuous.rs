@@ -48,7 +48,9 @@ impl<R: RandomStream> Normal<InverseCumulative<R>> {
   pub fn sample_1(&mut self) -> f64 {
     self.mu + self.sigma * self.transform.get_n(1)[0]
   } 
+}
 
+impl<R: RandomStream> Dist<f64> for Normal<InverseCumulative<R>> {
   /// Returns a vector of n normal variates
   ///
   /// # Arguments
@@ -66,7 +68,7 @@ impl<R: RandomStream> Normal<InverseCumulative<R>> {
   /// let mut normdist = Normal::<InverseCumulative<MT19937>>::new(0.0, 1.0, MT19937::new(None));
   /// let v = normdist.sample_n(100);
   /// ```
-  pub fn sample_n(&mut self, n: usize) -> Vec<f64> {
+  fn sample_n(&mut self, n: usize) -> Vec<f64> {
     self.transform.get_n(n).iter().map(|&r| self.mu + self.sigma * r).collect()
   } 
 }
@@ -80,7 +82,9 @@ impl<R: RandomStream + Dimensionless + Rejectable> Normal<Polar<R>> {
   // pub fn sample_1(&mut self) -> f64 {
   //   self.mu + self.sigma * self.transform.get_n(1)[0]
   // } 
+}
 
+impl<R: RandomStream + Dimensionless + Rejectable> Dist<f64> for Normal<Polar<R>> {
   /// Returns a vector of n normal variates
   ///
   /// # Arguments
@@ -98,7 +102,7 @@ impl<R: RandomStream + Dimensionless + Rejectable> Normal<Polar<R>> {
   /// let mut normdist = Normal::<Polar<MT19937>>::new(0.0, 1.0, MT19937::new(None));
   /// let v = normdist.sample_n(100);
   /// ```
-  pub fn sample_n(&mut self, n: usize) -> Vec<f64> {
+  fn sample_n(&mut self, n: usize) -> Vec<f64> {
     self.transform.get_n(n).iter().map(|&r| self.mu + self.sigma * r).collect()
   } 
 }

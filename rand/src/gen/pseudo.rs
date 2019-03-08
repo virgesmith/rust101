@@ -4,24 +4,6 @@
 // mod gen  is implicit from this filename
 use crate::gen::*;
 
-/// Pseudorandom generator interface
-pub trait PRNG : RandomStream + Seeded + Dimensionless + Resettable + Rejectable {
-  // /// Initialise using clock as seed
-  // fn new(seed: Option<u32>) -> Self;
-  // /// Return next integer in the sequence
-  // fn next_1(&mut self) -> u32;
-  // /// Return next n integers in the sequence
-  // fn next_n(&mut self, n: usize) -> Vec<u32>;
-  // /// Return the next value as a normalised float
-  // fn uniform01(&mut self) -> f64;
-  // /// Return the next n values as normalised floats
-  // fn uniforms01(&mut self, n: usize) -> Vec<f64>;
-  // /// Reset the generator to its initial state
-  // fn reset(&mut self) -> &mut Self;
-  // /// Can be used in rejection sampling (default yes)
-  // fn rejectable() -> bool { true }
-}
-
 /// Linear congruential generator equivalent to the C++11 minstd_rand 
 pub struct LCG {
   /// The seed

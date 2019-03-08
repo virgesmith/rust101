@@ -5,14 +5,12 @@ use num::Num;
 use crate::dist::*;
 
 #[derive(Debug)]
-// TODO template
 pub struct Discrete<R, T> {
   v: Vec<T>,
   rng: R
 }
 
 #[derive(Debug)]
-// TODO template?
 pub struct DiscreteWeighted<R, T> {
   v: Vec<T>,
   p: Vec<f64>,
@@ -206,7 +204,7 @@ mod test {
       let state_occs = (1..=10).map(|i| (i,1)).collect::<Vec<(i32, u32)>>();
       //let state_occs2 = (1..=10).into_iter().zip(&vec![10;1]).collect::<Vec<(i32, u32)>>();
       let rng = Xorshift64::new(Some(19937));
-      // TODO why doesnt this complain? it must move?
+      // TODO why doesnt this complain? it must move? no it copies
       let mut dist = WithoutReplacement::new(&state_occs, rng);
       let mut res = dist.sample_n(state_occs.len());
       res.sort();
