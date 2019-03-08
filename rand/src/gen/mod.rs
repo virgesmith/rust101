@@ -12,6 +12,7 @@ pub trait Seeded {
   fn new(seed: Option<u32>) -> Self;
 }
 
+// TODO merge with Rejectable?
 pub trait Dimensionless {
   /// return n integers (u32)
   fn next_1(&mut self) -> u32;

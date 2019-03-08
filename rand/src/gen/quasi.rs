@@ -122,17 +122,4 @@ mod test {
   fn test_sobol_failures2() {
     Sobol::new(unsafe { sobol_maxdim() } + 1);
   }
-
-  // #[test]
-  // fn test_sobol_traits() {
-  //   let mut q = QDiscrete::new();
-  //   let mut s = Sobol::new(8);
-
-  //   assert_eq!(q.sample_n(8, &mut s), 4.0);
-  //   for _ in 0..20 {
-  //     println!("{}", q.sample_n(8, &mut s));
-  //   }
-  //   //assert!(false);
-  // } 
-
 }

@@ -66,6 +66,8 @@ impl Seeded for LCG {
   }
 }
 
+impl Rejectable for LCG { } 
+
 impl Dimensionless for LCG {
   fn next_1(&mut self) -> u32 {
     self.r = ((self.r as u64 * LCG::A) % LCG::M) as u32;
@@ -99,8 +101,6 @@ impl Resettable for LCG {
   }
 }
 
-//impl Xorshift64 { }
-
 impl Seeded for Xorshift64 {
   fn new(seed: Option<u32>) -> Xorshift64 {
     let seed = get_seed(seed);
@@ -109,6 +109,8 @@ impl Seeded for Xorshift64 {
     Xorshift64{s: seed, r: seed}
   }
 }
+
+impl Rejectable for Xorshift64 { }
 
 impl Dimensionless for Xorshift64 {
   fn next_1(&mut self) -> u32 {
@@ -171,6 +173,8 @@ impl Seeded for MT19937 {
     unsafe { MT19937{seed:seed, pimpl: mt19937_create(seed)} }
   }
 }
+
+impl Rejectable for MT19937 { }
 
 impl Dimensionless for MT19937 {
   fn next_1(&mut self) -> u32 {
