@@ -205,7 +205,7 @@ mod test {
     {
       let state_occs = (1..=10).map(|i| (i,1)).collect::<Vec<(i32, u32)>>();
       //let state_occs2 = (1..=10).into_iter().zip(&vec![10;1]).collect::<Vec<(i32, u32)>>();
-      let mut rng = Xorshift64::new(Some(19937));
+      let rng = Xorshift64::new(Some(19937));
       // TODO why doesnt this complain? it must move?
       let mut dist = WithoutReplacement::new(&state_occs, rng);
       let mut res = dist.sample_n(state_occs.len());

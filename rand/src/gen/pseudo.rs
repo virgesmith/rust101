@@ -31,7 +31,7 @@ pub struct LCG {
 }
 
 pub struct Xorshift64 {
-  s: u64,
+  s: u32,
   r: u64
 }
 
@@ -58,11 +58,17 @@ impl LCG {
 }
 
 // public
-impl Seeded for LCG {
-  fn new(seed: Option<u32>) -> LCG {
+impl LCG {
+  pub fn new(seed: Option<u32>) -> LCG {
     let seed = get_seed(seed);
     assert_ne!(seed, 0);
     LCG{s: seed, r: seed}   
+  }
+}
+
+impl Seeded for LCG {
+  fn seed(&self) -> u32 {
+    self.s 
   }
 }
 
@@ -101,12 +107,17 @@ impl Resettable for LCG {
   }
 }
 
-impl Seeded for Xorshift64 {
-  fn new(seed: Option<u32>) -> Xorshift64 {
+impl Xorshift64 {
+  pub fn new(seed: Option<u32>) -> Xorshift64 {
     let seed = get_seed(seed);
-    let seed = ((seed as u64) << 32) | (seed as u64);
     assert_ne!(seed, 0);
-    Xorshift64{s: seed, r: seed}
+    Xorshift64{s: seed, r: seed as u64 }
+  }
+}
+
+impl Seeded for Xorshift64 {
+  fn seed(&self) -> u32 {
+    self.s
   }
 }
 
@@ -140,7 +151,7 @@ impl RandomStream for Xorshift64 {
 
 impl Resettable for Xorshift64 {
   fn reset(&mut self) -> &mut Self {
-    self.r = self.s; 
+    self.r = self.s as u64; 
     self 
   }
 
@@ -167,8 +178,8 @@ impl Drop for MT19937 {
   }
 }
 
-impl Seeded for MT19937 {
-  fn new(seed: Option<u32>) -> MT19937 {
+impl MT19937 {
+  pub fn new(seed: Option<u32>) -> MT19937 {
     let seed = get_seed(seed);
     unsafe { MT19937{seed:seed, pimpl: mt19937_create(seed)} }
   }
@@ -233,7 +244,7 @@ mod test {
   #[test]
   fn test_xorshift64() {
     let mut gen = Xorshift64::new(Some(1));
-    assert_eq!(gen.next_1(), 1115824193);
+    assert_eq!(gen.next_1(), 1082269761);
 
     let mean: f64 = gen.uniforms01(TRIALS).iter().sum::<f64>() / (TRIALS as f64);
     assert!(mean > 0.49 && mean < 0.51);

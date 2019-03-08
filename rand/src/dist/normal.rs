@@ -1,12 +1,6 @@
 // Algorithms to transform uniform variates to normal 
 use crate::gen::*;
 
-// pub trait NormalTransformation {
-//   fn new() -> Self;
-//   fn get<R: RandomStream + Dimensionless>(&mut self, rng: &mut R) -> f64; 
-//   //fn get_d(&mut self, &mut impl QRNG); 
-// }
-
 // Marsaglia's polar method of sampling normals
 #[derive(Debug)]
 pub struct Polar<R> {
@@ -145,16 +139,27 @@ impl<R: RandomStream> InverseCumulative<R> {
 mod test {
   use super::*;
   use crate::gen::pseudo::*;
-  //use crate::gen::quasi::*;
+  use crate::gen::quasi::*;
 
   #[test]
   fn test_polar() {
+    const N: usize = 10000;
+    let f = (0..N).map(|i| (i as f64)/(N as f64)).collect::<Vec<f64>>();
+    let x = f.iter().map(|&fi| inv_cdf(fi)).collect::<Vec<f64>>();
+    for i in 0..N {
+      assert!((f[i] - cdf(x[i])).abs() < std::f64::EPSILON);
+    }
 
+    let mut polar = Polar::new(MT19937::new(Some(77027465)));
+    let v = polar.get_n(N);
+    println!("{} {}", N, v.iter().sum::<f64>());
+    // mean should be < 1/sqrt(N) so sum should be < sqrt(N)
+    assert!(v.iter().sum::<f64>() < (N as f64).sqrt());
   }
 
   #[test]
   fn test_acklam() {
-    const N: usize = 1000;
+    const N: usize = 10000;
     let f = (0..N).map(|i| (i as f64)/(N as f64)).collect::<Vec<f64>>();
     let x = f.iter().map(|&fi| inv_cdf(fi)).collect::<Vec<f64>>();
     for i in 0..N {
@@ -163,6 +168,23 @@ mod test {
 
     let mut acklam = InverseCumulative::new(MT19937::new(Some(19937)));
     let v = acklam.get_n(N);
-    assert!(v.iter().sum::<f64>() < 1.0 / (N as f64).sqrt());
+    // mean should be < 1/sqrt(N) so sum should be < sqrt(N)
+    assert!(v.iter().sum::<f64>() < (N as f64).sqrt());
   }
+
+  #[test]
+  fn test_acklam_sobol() {
+    const N: usize = 10000;
+    let f = (0..N).map(|i| (i as f64)/(N as f64)).collect::<Vec<f64>>();
+    let x = f.iter().map(|&fi| inv_cdf(fi)).collect::<Vec<f64>>();
+    for i in 0..N {
+      assert!((f[i] - cdf(x[i])).abs() < std::f64::EPSILON);
+    }
+
+    let mut acklam = InverseCumulative::new(Sobol::new(1));
+    let v = acklam.get_n(N);
+    // mean should be ~< 1/N so abs sum should be < 1
+    assert!(v.iter().sum::<f64>().abs() < 1.0);
+  }
+
 }

@@ -36,15 +36,18 @@ impl Drop for Sobol {
   }
 }
 
-impl Dimensioned for Sobol {
-  fn new(dim: u32) -> Sobol {
+impl Sobol {
+  pub fn new(dim: u32) -> Sobol {
     assert!(dim > 0 && dim <= unsafe {sobol_maxdim()});
     let this = Sobol{dim: dim, cache: vec![0; dim as usize], pimpl: unsafe { nlopt_sobol_create(dim) } };
     // initialise cache
     unsafe { nlopt_sobol_next(this.pimpl, &this.cache[0]); }
     this
   }
+}
 
+
+impl Dimensioned for Sobol {
   fn dim(&self) -> u32 {
     self.dim
   }
@@ -62,7 +65,8 @@ impl RandomStream for Sobol {
   }
 
   fn uniforms01(&mut self, n: usize) -> Vec<f64> {
-    assert_eq!(n, self.cache.len());
+    // only a multiple of dim is allowed
+    assert_eq!(n % self.cache.len(), 0);
     // calc uniforms
     let result = self.cache.iter().map(|&x| x as f64 / 2.0f64.powi(32)).collect();
     // update cache before returning

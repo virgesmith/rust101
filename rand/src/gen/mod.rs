@@ -11,7 +11,7 @@ pub trait RandomStream {
 
 pub trait Seeded {
   /// initialise from a given seed 
-  fn new(seed: Option<u32>) -> Self;
+  fn seed(&self) -> u32;
 }
 
 // TODO merge with Rejectable?
@@ -23,9 +23,6 @@ pub trait Dimensionless {
 }
 
 pub trait Dimensioned {
-  /// Init from dimension (conflicts with Dimensioned?)
-  fn new(d: u32) -> Self;
-
   /// Get dimension
   fn dim(&self) -> u32;
 }
