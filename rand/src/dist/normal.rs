@@ -1,7 +1,5 @@
 // Algorithms to transform uniform variates to normal 
 use crate::gen::*;
-use crate::gen::pseudo::*;
-use crate::gen::quasi::*;
 
 // pub trait NormalTransformation {
 //   fn new() -> Self;
@@ -146,6 +144,8 @@ impl<R: RandomStream> InverseCumulative<R> {
 #[cfg(test)]
 mod test {
   use super::*;
+  use crate::gen::pseudo::*;
+  //use crate::gen::quasi::*;
 
   #[test]
   fn test_polar() {

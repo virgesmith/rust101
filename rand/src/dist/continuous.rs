@@ -3,9 +3,10 @@ use crate::dist::*;
 use crate::dist::normal::*;
 
 #[derive(Debug)]
-pub struct Uniform {
+pub struct Uniform<R> {
   l: f64,
-  s: f64
+  s: f64,
+  rng: R 
 }
 
 #[derive(Debug)]
@@ -16,24 +17,25 @@ pub struct Normal<T> {
 }
 
 #[derive(Debug)]
-pub struct Exponential {
-  lambda: f64
+pub struct Exponential<R> {
+  lambda: f64,
+  rng: R
 }
 
-impl Uniform {
-  pub fn new(l: f64, h: f64) -> Uniform {
+impl<R: RandomStream> Uniform<R> {
+  pub fn new(l: f64, h: f64, rng: R) -> Uniform<R> {
     assert!(h > l);
-    Uniform{l: l, s: h-l}
+    Uniform{l: l, s: h-l, rng: rng}
   }
 }
 
-impl Dist<f64> for Uniform {
-  fn sample_1<R: RandomStream + Dimensionless>(&mut self, rng: &mut R) -> f64 {
-    rng.uniform01() * self.s + self.l 
-  } 
+impl<R: RandomStream> Dist<f64> for Uniform<R> {
+  // fn sample_1(&mut self) -> f64 {
+  //   self.rng.uniform01() * self.s + self.l 
+  // } 
 
-  fn sample_n<R: RandomStream + Dimensionless>(&mut self, n: usize, rng: &mut R) -> Vec<f64> {
-    (0..n).map(|_| self.sample_1(rng)).collect()
+  fn sample_n(&mut self, n: usize) -> Vec<f64> {
+    self.rng.uniforms01(n).iter().map(|&x| self.l + self.s * x).collect()
   } 
 }
 
@@ -75,9 +77,9 @@ impl<R: RandomStream + Dimensionless + Rejectable> Normal<Polar<R>> {
     Normal{mu: mean, sigma: variance.sqrt(), transform: Polar::new(rng) }
   }
 
-  pub fn sample_1(&mut self) -> f64 {
-    self.mu + self.sigma * self.transform.get_n(1)[0]
-  } 
+  // pub fn sample_1(&mut self) -> f64 {
+  //   self.mu + self.sigma * self.transform.get_n(1)[0]
+  // } 
 
   /// Returns a vector of n normal variates
   ///
@@ -101,50 +103,52 @@ impl<R: RandomStream + Dimensionless + Rejectable> Normal<Polar<R>> {
   } 
 }
 
-
-impl Exponential {
-  pub fn new(lambda: f64) -> Exponential {
+// TODO implement a transform layer (so can add e.g. Ziggurat)
+// currently hard-coded to inverse
+impl<R: RandomStream> Exponential<R> {
+  pub fn new(lambda: f64, rng: R) -> Exponential<R> {
     assert!(lambda > 0.0);
-    Exponential{lambda}
+    Exponential{lambda, rng}
   }
 }
 
-impl Dist<f64> for Exponential {
-  fn sample_1<R: RandomStream + Dimensionless>(&mut self, rng: &mut R) -> f64 {
-    -rng.uniform01().ln() / self.lambda 
-  } 
+impl<R: RandomStream> Dist<f64> for Exponential<R> {
+  // fn sample_1<R: RandomStream + Dimensionless>(&mut self, rng: &mut R) -> f64 {
+  //   -rng.uniform01().ln() / self.lambda 
+  // } 
 
-  fn sample_n<R: RandomStream + Dimensionless>(&mut self, n: usize, rng: &mut R) -> Vec<f64> {
-    (0..n).map(|_| self.sample_1(rng)).collect()
+  fn sample_n(&mut self, n: usize) -> Vec<f64> {
+    self.rng.uniforms01(n).iter().map(|&r| -r.ln() / self.lambda).collect()
   } 
 }
 
 #[cfg(test)]
 mod test {
   use super::*;
+  use crate::gen::pseudo::*;
+  use crate::gen::quasi::*;
 
   const TRIALS: usize = 60000;
 
   #[test]
   fn test_uniform_lcg() {
-    let mut u = Uniform::new(-1.0, 1.0);
-    let mut rand = LCG::new(Some(19937));
-    let mu: f64 = u.sample_n(TRIALS, &mut rand).iter().sum::<f64>() / (TRIALS as f64);
+    let mut u = Uniform::new(-1.0, 1.0, LCG::new(Some(19937)));
+    let mu: f64 = u.sample_n(TRIALS).iter().sum::<f64>() / (TRIALS as f64);
     assert!(mu.abs() < (TRIALS as f64).sqrt());
   }
 
   #[test]
   fn test_uniform_xorshift() {
-    let mut u = Uniform::new(-1.0, 1.0);
-    let mut rand = Xorshift64::new(Some(19937));
-    let mu: f64 = u.sample_n(TRIALS, &mut rand).iter().sum::<f64>() / (TRIALS as f64);
+    let mut u = Uniform::new(-1.0, 1.0, Xorshift64::new(Some(19937)));
+    let mu: f64 = u.sample_n(TRIALS).iter().sum::<f64>() / (TRIALS as f64);
     assert!(mu.abs() < (TRIALS as f64).sqrt());
   }
+
 
   #[test]
   #[should_panic]
   fn test_uniform_invalid() {
-    Uniform::new(1.0, 1.0);
+    Uniform::new(1.0, 1.0, LCG::new(None));
   }
 
   #[test]
@@ -152,9 +156,8 @@ mod test {
     // test k from 1e-5 to 1e+5
     for i in -5..6 { 
       let k = 10.0f64.powi(i);
-      let mut e = Exponential::new(k);
-      let mut rand = Xorshift64::new(Some(19937));
-      let mu: f64 = e.sample_n(TRIALS, &mut rand).iter().sum::<f64>() / (TRIALS as f64);
+      let mut e = Exponential::new(k, Xorshift64::new(Some(19937)));
+      let mu: f64 = e.sample_n(TRIALS).iter().sum::<f64>() / (TRIALS as f64);
       println!("{} {}", mu, 1.0/k);
       // mean should be 1/k
       assert!((mu * k - 1.0).abs() < 1.0 / (TRIALS as f64).sqrt());
@@ -164,7 +167,7 @@ mod test {
   #[test]
   #[should_panic]
   fn test_exponential_invalid() {
-    Exponential::new(0.0);
+    Exponential::new(0.0, LCG::new(None));
   }
 
   #[test]
@@ -197,20 +200,11 @@ mod test {
     Normal::<Polar<LCG>>::new(0.0, 0.0, LCG::new(None));
   }
 
-  // #[test]
-  // #[should_panic]
-  // fn test_normal_invalid_combination() {
-  //   // can't use rejection sampling with quasirandom generator
-  //   let mut dist = Normal::<Polar>::new(0.0, 1.0);
-  //   let mut rng = Sobol::new(1);
-  //   let x = dist.sample_n(1, &mut rng);
-  // }
-
-  // #[test]
-  // fn test_normal_quasi() {
-  //   // can't use rejection sampling with quasirandom generator
-  //   let mut dist = Normal::<InverseCumulative>::new(0.0, 1.0);
-  //   let mut rng = Sobol::new(1);
-  //   let x = dist.sample_n(1, &mut rng);
-  // }
+  #[test]
+  fn test_normal_quasi() {
+    // can't use rejection sampling with quasirandom generator
+    // let mut dist = Normal::<Polar<Sobol>>::new(0.0, 1.0, Sobol::new(1));
+    let mut dist = Normal::<InverseCumulative<Sobol>>::new(0.0, 1.0, Sobol::new(1));
+    let _ = dist.sample_n(1);
+  }
 }

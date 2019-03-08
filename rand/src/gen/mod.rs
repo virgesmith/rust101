@@ -1,4 +1,6 @@
 
+/// TODO remove new from traits
+
 /// General traits of random 
 pub trait RandomStream {
   /// return n integers (u32)
@@ -23,6 +25,9 @@ pub trait Dimensionless {
 pub trait Dimensioned {
   /// Init from dimension (conflicts with Dimensioned?)
   fn new(d: u32) -> Self;
+
+  /// Get dimension
+  fn dim(&self) -> u32;
 }
 
 pub trait Rejectable { 

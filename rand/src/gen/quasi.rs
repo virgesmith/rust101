@@ -44,6 +44,10 @@ impl Dimensioned for Sobol {
     unsafe { nlopt_sobol_next(this.pimpl, &this.cache[0]); }
     this
   }
+
+  fn dim(&self) -> u32 {
+    self.dim
+  }
 }
 
 impl RandomStream for Sobol {
