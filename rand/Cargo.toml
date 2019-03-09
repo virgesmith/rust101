@@ -3,9 +3,10 @@ name = "rand"
 version = "0.1.0"
 authors = []
 edition = "2018"
-links = "sobol"
+#links = "sobol"
 # not being called?
 #build = "build.rs"
 
 [dependencies]
-num = "*"
+num = "^0.2.0"
+byteorder = "^1.3.1"

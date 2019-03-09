@@ -39,3 +39,4 @@ pub trait Resettable {
 
 pub mod pseudo;
 pub mod quasi;
+pub mod entropy;
