@@ -106,6 +106,8 @@ impl<R: RandomStream, T: Num + Clone + Copy> WithoutReplacement<R, T> {
 
 impl<R: RandomStream, T: Num + Clone + Copy> Dist<T> for WithoutReplacement<R, T> {
   fn sample_n(&mut self, n: usize) -> Vec<T> {
+    // ensure there's enough populatio left
+    assert!(n as u32 <= self.f.iter().sum::<u32>());
     self.rng.next_n(n).iter().map(|&r| self.sample_1(r)).collect()
   }
 }
@@ -114,7 +116,7 @@ impl<R: RandomStream, T: Num + Clone + Copy> Dist<T> for WithoutReplacement<R, T
 mod test {
   use super::*;
   use crate::gen::pseudo::*;
-  //use crate::gen::quasi::*;
+  use crate::gen::quasi::*;
 
   const TRIALS: usize = 60000;
 
@@ -221,6 +223,20 @@ mod test {
       res.sort();
       assert_eq!(res, state_occs.iter().map(|&(v,_)| v).collect::<Vec<i32>>());
     }
+  }
+
+  #[test]
+  fn test_without_replacement_sobol() {
+    // state i has occupacy i 
+    let state_occs = (1..=10).map(|i| (i,i as u32)).collect::<Vec<(i32, u32)>>();
+    // one sample from 55-dimensional sobol should take the entire population
+    let mut dist = WithoutReplacement::new(&state_occs, Sobol::new(55));
+    let res = dist.sample_n(55);
+    // reconstruct the dist
+    let hist = res.iter().fold(vec![0u32;10], 
+                                |mut acc, &v| { let i = (v-1) as usize; acc[i] += 1; acc })
+                          .into_iter().collect::<Vec<u32>>();
+    assert_eq!(hist, (1..=10).collect::<Vec<u32>>());
   }
 
   #[test]

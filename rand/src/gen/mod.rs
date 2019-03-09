@@ -1,6 +1,4 @@
 
-/// TODO remove new from traits
-
 /// General traits of random 
 pub trait RandomStream {
   /// return n integers (u32)
