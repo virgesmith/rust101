@@ -6,7 +6,6 @@ extern crate byteorder;
 struct EntropySource 
 { 
   buf: BufReader<File>
-  //fd: File
 }
 
 impl EntropySource {

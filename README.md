@@ -24,7 +24,6 @@ A port of some C++ code I wrote to generate bitcoin vanity addresses. A nice sim
 It's actually running faster than my C++ implementation, given enough threads. (There seems to be some thread blocking issue with openssl in my C++ implementation that means you don't see any performance improvement by increasing the number of threads - I 'fixed' it by using MPI)
 
 ## Number
-Messing about with
 I'm new to algebraic enumerations and I like them! A lot.
 
 If you think the (signed) integer absolute value function `int abs(int)` is safe (in terms of having well-defined output for any input) you'd be wrong!
@@ -102,13 +101,65 @@ fn ln(x: f64) -> Number<f64> {
 }
 ```
 
-### Is it better?
+## Rand
 
-Clarity: yes, once you get your head round the concept.
+A random number library. More reinventing the wheel to learn rust, specifically:
+- package structure and tests, documentation, and doctests.
+- how to integrate with C and C++,
+- using traits to define relationships (or lack thereof) between types
+- iterators
 
-Performance: I don't know yet! TODO Profile/disassembler comparisons of the C++ (above) and rust. Since the check must be a runtime one, I can't see how it could outperform a (clever) C++ implementation (one that doesn't use exceptions and the accompanying baggage).
+The following generators are implemented:
+- C++11 minstd implementation of an LCG generator
+- 64-bit xor shift generator
+- Mersenne twister (link to C++11 std lib implementation)
+- Sobol quasirandom sequence generator (link to C implementation)
+- "EntropySource": true(ish) random using /dev/urandom (/dev/random too slow) 
 
-Usability: not sure. I'm not experienced enough with rust. The returned type needs to be unwrapped, or math functions need to be provided that accept a Number<>? unwrapping into the wrong type will result in a panic.
+Which implement one or more of the traits
+- RandomStream: produces vectors of `u32` and `f64`
+- Seeded: requires a seed for initialisation, defaults to current nanoseconds
+- Dimensioned: has inherent dimension (i.e. Sobol)
+- Dimensionless: can sample one at a time (i.e. not Sobol)
+- Rejectable: variates can be dropped and randomness properties are retained (i.e. not Sobol)
+- Resettable: can be reset to initial state (not EntropySource) 
+
+and the distributions:
+- Discrete uniform
+- Discrete weighted
+- Discrete without-replacement
+- Continuous uniform
+- Normal, two variants: 
+  - Marsaglia's polar version of the Box-Muller algorithm, 
+  - Acklam's approximation to the inverse normal CDF
+- Exponential (using inverse CDF)
+
+have different "trait bounds", the point being to structure the code so that it's not possible to combine invalid combinations of random streams and distribution algorithms, thus:
+```rust
+let mut dist = Normal::<InverseCumulative<Sobol>>::new(0.0, 1.0, Sobol::new(1));
+```
+is fine, whereas 
+```rust
+let mut dist = Normal::<Polar<Sobol>>::new(0.0, 1.0, Sobol::new(1));
+```
+gives the (admittedly not entirely obvious) error
+```
+error[E0599]: no function or associated item named `new` found for type `dist::continuous::Normal<dist::normal::Polar<gen::quasi::Sobol>>` in the current scope
+   --> src/dist/continuous.rs:210:44
+    |
+13  | pub struct Normal<T> {
+    | -------------------- function or associated item `new` not found for this
+...
+210 |     let mut dist = Normal::<Polar<Sobol>>::new(0.0, 1.0, Sobol::new(1));
+    |                    ------------------------^^^
+    |                    |
+    |                    function or associated item not found in `dist::continuous::Normal<dist::normal::Polar<gen::quasi::Sobol>>`
+    |
+    = note: the method `new` exists but the following trait bounds were not satisfied:
+            `gen::quasi::Sobol : gen::Dimensionless`
+            `gen::quasi::Sobol : gen::Rejectable`
+```
+the point being that the polar algorithm is a rejection algorithm and Sobol sequences require all variates to be used to preserve their statistical properties. Thus, `Sobol` doesn't implement the `Rejectable` trait which is made a requirement for `Polar`'s template parameter. 
 
 ## Server
 
@@ -121,19 +172,3 @@ A linked list implementation using algebraic enums, based on a codewars kata sol
 ## Vector
 
 Another kata solution
-
-## Rand
-
-More reinventing the wheel to learn rust and how to integrate with C and C++. A random number library with C linkage. Generators:
-- C++11 minstd implementation of an LCG generator
-- 64-bit xor shift generator
-- Mersenne twister (C++11 std lib implementation)
-- Sobol quasirandom sequence generator (C implementation)
-Distributions:
-- Discrete (integer) uniform
-- Discrete (integer) weighted
-- Discrete (integer) without-replacement
-- Continuous uniform
-- Normal
-- Exponential
-
