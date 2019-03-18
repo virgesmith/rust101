@@ -1,6 +1,4 @@
 use crate::gen::*;
-// use crate::gen::pseudo::*;
-// use crate::gen::quasi::*;
 
 pub trait Dist<T> {
   fn sample_n(&mut self, n: usize) -> Vec<T>;
@@ -9,3 +7,5 @@ pub trait Dist<T> {
 pub mod discrete;
 pub mod continuous;
 pub mod normal;
+pub mod exponential;
+pub mod moments;

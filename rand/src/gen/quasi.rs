@@ -52,23 +52,20 @@ impl Dimensioned for Sobol {
 
 impl RandomStream for Sobol {
   fn next_n(&mut self, n: usize) -> Vec<u32> {
-    assert_eq!(n, self.cache.len());
+    // only a multiple of dim is allowed
+    assert_eq!(n % self.cache.len(), 0);
     // clone the cache
-    let result = self.cache.clone();
-    // update
-    unsafe { nlopt_sobol_next(self.pimpl, &self.cache[0]); }
-    // return the cloned cache
+    let mut result = Vec::new();
+    for _ in 0..n/self.cache.len() {
+      result.append(&mut self.cache.clone());
+      unsafe { nlopt_sobol_next(self.pimpl, &self.cache[0]); }
+    }
     result
   }
 
   fn uniforms01(&mut self, n: usize) -> Vec<f64> {
-    // only a multiple of dim is allowed
-    assert_eq!(n % self.cache.len(), 0);
-    // calc uniforms
-    let result = self.cache.iter().map(|&x| x as f64 / 2.0f64.powi(32)).collect();
-    // update cache before returning
-    unsafe { nlopt_sobol_next(self.pimpl, &self.cache[0]); };
-    result
+    const SCALE: f64 = 1.0 / 4294967296.0; 
+    self.next_n(n).iter().map(|&r| r as f64 * SCALE).collect()
   }
 
 }

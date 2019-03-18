@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::BufReader;
 extern crate byteorder;
 
-struct EntropySource 
+pub struct EntropySource 
 { 
   buf: BufReader<File>
 }

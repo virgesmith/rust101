@@ -238,10 +238,16 @@ mod test {
     Xorshift64::new(Some(0));
   }  
 
+  // fn moved(rng: MT19937) {
+  //   println!("moved rng {:?}", rng.next_n(10));
+  // }
+
   // #[test]
   // fn test_mt19937() {
-  //   let mut gen = MT19937::new(None);
-  //   let r = gen.next_n(10);
-  //   assert_eq!(r, gen.reset().next_n(10));
+  //   let mut rng = MT19937::new(None);
+  //   moved(rng);
+  //   println!("caller rng {:?}", rng.next_n(10));
+  //                               ^^^ value borrowed here after move
+  //   assert!(false);
   // }
 }

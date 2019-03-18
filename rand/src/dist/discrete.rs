@@ -42,6 +42,28 @@ impl<R: RandomStream, T: Num + Clone + Copy> Dist<T> for Discrete<R, T> {
   } 
 }
 
+// bisect to find lowest i where v[i] <= x
+fn bisect<T: PartialOrd>(x: T, v: &[T]) -> usize {
+  // let mut l = 0;
+  // let mut h = v.len() - 1;
+  // if v[0] >= x { return 0; }
+  // loop {
+  //   let m = (l + h) / 2;
+  //   if v[m] <= x { l = m; } else { h = m; }
+  //   // return h when l,h adjacent
+  //   if h - l <= 1 {
+  //     return h;
+  //   } 
+  // }
+  // sequential version: return i where v[i] <= x < v[i+1]
+  for i in 0..v.len() {
+    if x <= v[i] {
+      return i;
+    } 
+  }
+  panic!("DiscreteWeighted sample failure, is Generator working correctly?");
+}
+
 impl<R: RandomStream, T: Num + Clone + Copy> DiscreteWeighted<R, T> {
   pub fn new(a: &[(T,f64)], rng: R) -> DiscreteWeighted<R, T> {
     assert!(a.len() > 0);
@@ -56,21 +78,13 @@ impl<R: RandomStream, T: Num + Clone + Copy> DiscreteWeighted<R, T> {
   }
 
   fn sample_1(&mut self, r: f64) -> T {
-    // first element of p > r
-    // TODO bisect?
-    for i in 0..self.p.len() {
-      if self.p[i] > r {
-        return self.v[i];
-      } 
-    }
-    // TODO better way?
-    panic!("DiscreteWeighted sample failure, is Generator working correctly?");
+    // first element in p > r
+    self.v[bisect(r, &self.p)]
   } 
 
 }
 
 impl<R: RandomStream, T: Num + Clone + Copy> Dist<T> for DiscreteWeighted<R, T> {
-
   fn sample_n(&mut self, n: usize) -> Vec<T> {
     self.rng.uniforms01(n).iter().map(|&r| self.sample_1(r)).collect()
   } 
@@ -89,6 +103,10 @@ impl<R: RandomStream, T: Num + Clone + Copy> WithoutReplacement<R, T> {
     let mut s = 0;
     let cumul = self.f.iter().fold(Vec::with_capacity(self.f.len()), |mut acc, f| { s += f; acc.push(s); acc });
     let r = r % cumul.last().unwrap();
+    // broken: samples empty states
+    // let i = bisect(r, &self.f);
+    // self.f[i] -= 1;
+    // self.v[i]
     for i in 0..cumul.len() {
       if cumul[i] > r {
         self.f[i] -= 1;
@@ -157,6 +175,17 @@ mod test {
   }
 
   #[test]
+  fn test_bisect() {
+    let v = vec![0.0, 0.5, 1.5, 2.5, 4.0, 5.0];
+    assert_eq!(bisect(0.0, &v), 0);
+    assert_eq!(bisect(1.0, &v), 2);
+    assert_eq!(bisect(2.0, &v), 3);
+    assert_eq!(bisect(3.0, &v), 4);
+    assert_eq!(bisect(4.0, &v), 4);
+    assert_eq!(bisect(5.0, &v), 5);
+  }
+
+  #[test]
   fn test_discrete_flat_weighted_xorshift() {
     let mut h = vec![0; 6];
     let p = 1.0 / 6.0;
@@ -164,6 +193,7 @@ mod test {
     for _ in 0..TRIALS {
       h[fair_die.sample_n(1)[0] as usize-1] += 1;
     }
+    println!("{:?}", h);
     let lo = (TRIALS as f64 / 6.0 - 1.0 * (TRIALS as f64).sqrt()) as i32; 
     let hi = (TRIALS as f64 / 6.0 + 1.0 * (TRIALS as f64).sqrt()) as i32; 
     for n in h {
@@ -178,7 +208,6 @@ mod test {
     for _ in 0..TRIALS {
       h[fair_die.sample_n(1)[0] as usize-1] += 1;
     }
-    println!("{:?}", h);
     let lo = (TRIALS as f64 / 10.0 - 1.0 * (TRIALS as f64).sqrt()) as i32; 
     let hi = (TRIALS as f64 / 10.0 + 1.0 * (TRIALS as f64).sqrt()) as i32; 
     for i in 1..h.len() {
@@ -206,8 +235,11 @@ mod test {
       let state_occs = (1..=10).map(|i| (i,1)).collect::<Vec<(i32, u32)>>();
       //let state_occs2 = (1..=10).into_iter().zip(&vec![10;1]).collect::<Vec<(i32, u32)>>();
       let rng = Xorshift64::new(Some(19937));
-      // TODO why doesnt this complain? it must move? no it copies
+      // compiler doesnt complain as rng is moved
       let mut dist = WithoutReplacement::new(&state_occs, rng);
+      // but rng can't be used now
+      // rng.next_1();
+      // ^^^ value borrowed here after move
       let mut res = dist.sample_n(state_occs.len());
       res.sort();
       assert_eq!(res, state_occs.iter().map(|&(v,_)| v).collect::<Vec<i32>>());
@@ -236,6 +268,7 @@ mod test {
     let hist = res.iter().fold(vec![0u32;10], 
                                 |mut acc, &v| { let i = (v-1) as usize; acc[i] += 1; acc })
                           .into_iter().collect::<Vec<u32>>();
+    println!("{:?}", hist);
     assert_eq!(hist, (1..=10).collect::<Vec<u32>>());
   }
 

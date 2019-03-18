@@ -1,6 +1,8 @@
 
-use crate::dist::*;
-use crate::dist::normal::*;
+//use crate::dist::*;
+use crate::gen::{RandomStream, Dimensionless, Rejectable};
+use crate::dist::normal::{Polar, InverseCumulative};
+use crate::dist::Dist;
 
 #[derive(Debug)]
 pub struct Uniform<R> {
@@ -131,12 +133,20 @@ mod test {
   use super::*;
   use crate::gen::pseudo::*;
   use crate::gen::quasi::*;
+  use crate::gen::entropy::*;
 
   const TRIALS: usize = 60000;
 
   #[test]
   fn test_uniform_lcg() {
     let mut u = Uniform::new(-1.0, 1.0, LCG::new(Some(19937)));
+    let mu: f64 = u.sample_n(TRIALS).iter().sum::<f64>() / (TRIALS as f64);
+    assert!(mu.abs() < (TRIALS as f64).sqrt());
+  }
+
+  #[test]
+  fn test_uniform_entropy() {
+    let mut u = Uniform::new(-1.0, 1.0, EntropySource::new());
     let mu: f64 = u.sample_n(TRIALS).iter().sum::<f64>() / (TRIALS as f64);
     assert!(mu.abs() < (TRIALS as f64).sqrt());
   }

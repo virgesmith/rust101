@@ -12,11 +12,12 @@ pub trait Seeded {
   fn seed(&self) -> u32;
 }
 
-// TODO merge with Rejectable?
+// Only RNGs with no inherent dimension implement this
+// (use next_n(1) for 1d sequences if neceesary)
 pub trait Dimensionless {
-  /// return n integers (u32)
+  /// return 1 integer (u32)
   fn next_1(&mut self) -> u32;
-  /// return n doubles
+  /// return 1 double
   fn uniform01(&mut self) -> f64;
 }
 
