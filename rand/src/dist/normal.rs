@@ -38,7 +38,7 @@ impl<R: RandomStream + Dimensionless + Rejectable> Polar<R> {
   }
 }
 
-// Marsaglia's polar method of sampling normals
+// Acklam's inverse cumulative normal appproximation
 #[derive(Debug)]
 pub struct InverseCumulative<R> 
 { 

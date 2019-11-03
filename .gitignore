@@ -13,3 +13,6 @@ Cargo.lock
 
 *.o
 *.a
+
+so/
+cw/

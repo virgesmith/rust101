@@ -9,3 +9,4 @@ pub mod continuous;
 pub mod normal;
 pub mod exponential;
 pub mod moments;
+pub mod ziggurat;
