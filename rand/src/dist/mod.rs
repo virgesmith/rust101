@@ -6,7 +6,9 @@ pub trait Dist<T> {
 
 pub mod discrete;
 pub mod continuous;
+
 pub mod normal;
 pub mod exponential;
+
 pub mod moments;
-pub mod ziggurat;
+//pub mod zigexp;

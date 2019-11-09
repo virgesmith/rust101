@@ -1,7 +1,8 @@
 
 //use crate::dist::*;
 use crate::gen::{RandomStream, Dimensionless, Rejectable};
-use crate::dist::normal::{Polar, InverseCumulative};
+use crate::dist::normal::polar::Polar;
+use crate::dist::normal::acklam::InverseCumulative;
 use crate::dist::Dist;
 
 #[derive(Debug)]
@@ -66,6 +67,7 @@ impl<R: RandomStream> Dist<f64> for Normal<InverseCumulative<R>> {
   /// // with Marsaglia's polar transformation to convert to normal
   /// use rand::gen::{*, pseudo::*};
   /// use rand::dist::{Dist, continuous::*, normal::*};
+  /// use rand::dist::normal::acklam::InverseCumulative;
   /// // init Mersenne Twister using system clock
   /// let mut normdist = Normal::<InverseCumulative<MT19937>>::new(0.0, 1.0, MT19937::new(None));
   /// let v = normdist.sample_n(100);
@@ -100,6 +102,7 @@ impl<R: RandomStream + Dimensionless + Rejectable> Dist<f64> for Normal<Polar<R>
   /// // with Marsaglia's polar transformation to convert to normal
   /// use rand::gen::{*, pseudo::*};
   /// use rand::dist::{Dist, continuous::*, normal::*};
+  /// use rand::dist::normal::polar::Polar;
   /// // init Mersenne Twister using system clock
   /// let mut normdist = Normal::<Polar<MT19937>>::new(0.0, 1.0, MT19937::new(None));
   /// let v = normdist.sample_n(100);

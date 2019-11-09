@@ -23,7 +23,8 @@ mod test {
   use super::*;
   use crate::gen::pseudo::*;
   use crate::gen::quasi::*;
-  use crate::dist::normal::*;
+  use crate::dist::normal::polar::Polar;
+  use crate::dist::normal::acklam::InverseCumulative;
   use crate::dist::*;
   use crate::dist::continuous::Normal;
 

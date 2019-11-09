@@ -1,3 +1,10 @@
+//use crate::gen::*;
+
+//pub mod zigexp;
+
+//pub mod exponential;
+pub mod zigexp;
+
 // Algorithms to transform uniform variates to exponential 
 
 pub fn pdf(x: f64, lambda: f64) -> f64 {
@@ -7,6 +14,10 @@ pub fn pdf(x: f64, lambda: f64) -> f64 {
   }
 }
 
+pub fn inv_pdf(f: f64, lambda: f64) -> f64 {
+  -(f / lambda).ln() / lambda
+}
+
 pub fn cdf(x: f64, lambda: f64) -> f64 {
   match x {
     x if x < 0.0 => 0.0,
@@ -14,7 +25,7 @@ pub fn cdf(x: f64, lambda: f64) -> f64 {
   }
 }
 
-// when sampling from uinform [0,1] randoms, by symmetry can just use f rather than 1-f 
+// when sampling from uniform [0,1] randoms, by symmetry can just use f rather than 1-f ?
 pub fn inv_cdf(f: f64, lambda: f64) -> f64 {
   assert!(lambda > 0.0);
   assert!(f >= 0.0 && f <= 1.0);
@@ -24,9 +35,6 @@ pub fn inv_cdf(f: f64, lambda: f64) -> f64 {
 #[cfg(test)]
 mod test {
   use super::*;
-  // use crate::gen::*;
-  // use crate::gen::pseudo::*;
-  // use crate::gen::quasi::*;
 
   fn close_rel_eps(x: f64, y: f64, eps: Option<f64>) -> bool {
     let eps = eps.unwrap_or(std::f64::EPSILON);
@@ -47,7 +55,7 @@ mod test {
   }
 
   #[test]
-  fn test_basics() {
+  fn exp_basics() {
     assert!(close_abs_eps(pdf(-1.0, 1.0), 0.0, None));
     assert!(close_rel_eps(pdf(1.0, 1.0), (-1.0f64).exp(), None));
     assert!(close_rel_eps(pdf(1.0, 2.0), 2.0 * (-2.0f64).exp(), None));
@@ -63,6 +71,7 @@ mod test {
     for i in 1..10 {
       let x = i as f64;
       assert!(close_rel_eps(inv_cdf(cdf(x, 1.0), 1.0), x, Some(1024.0 * std::f64::EPSILON)));
+      assert!(close_rel_eps(inv_pdf(pdf(x, 1.0), 1.0), x, Some(1024.0 * std::f64::EPSILON)));
     }
   }
 }

@@ -16,7 +16,6 @@ pub struct Ziggurat<R> {
 }
 
 impl<R: RandomStream + Dimensionless + Rejectable> Ziggurat<R> {
-
   pub fn new(rng: R) -> Ziggurat<R> {
 
     static X1: f64 = 3.442619855899; /* start of the right tail */
@@ -110,7 +109,7 @@ impl<R: RandomStream + Dimensionless + Rejectable> Ziggurat<R> {
   fn get_impl(&mut self) -> f64 {
     loop {
       let u = 2.0 * self.rng.uniform01() - 1.0;
-      let i = (self.rng.next_1() & 0x7F) as usize;
+      let i = self.rng.next_1() as usize % NSTRIPS;
       if u.abs() < self.r[i] { return u * self.x[i]; }
       if i == 0 { return self.tail(self.x[1], u < 0.0); }
       let x = u * self.x[i];
@@ -140,6 +139,5 @@ mod test {
     // mean should be < 1/sqrt(N) so sum should be < sqrt(N)
     assert!(v.iter().sum::<f64>() < (N as f64).sqrt());
   }
-
 }
 
