@@ -8,16 +8,16 @@ use crate::gen::Dimensionless;
 
 const NSTRIPS: usize = 256;
 
-// Marsaglia's Ziggurat method of sampling normals
-pub struct ZigExp<R> {
+// Marsaglia's Ziggurat method of sampling exponentials
+pub struct Ziggurat<R> {
   rng: R,
   //v: f64,
   x: [f64; NSTRIPS+1],
   r: [f64; NSTRIPS]
 }
 
-impl<R: RandomStream + Dimensionless + Rejectable> ZigExp<R> {
-  pub fn new(rng: R) -> ZigExp<R> {
+impl<R: RandomStream + Dimensionless + Rejectable> Ziggurat<R> {
+  pub fn new(rng: R) -> Ziggurat<R> {
     static X1: f64 = 7.697117470131487; /* start of the right tail */
     static V: f64 = 3.949659822581572e-3;
 
@@ -37,7 +37,7 @@ impl<R: RandomStream + Dimensionless + Rejectable> ZigExp<R> {
       r[i] = x[i+1] / x[i];
     }
 
-    ZigExp{rng: rng, x: x, r: r}
+    Ziggurat{rng: rng, x: x, r: r}
   }
 
 // voidzigset(unsignedlongjsrseed)
@@ -120,7 +120,7 @@ mod test {
   #[test]
   fn test_ziggurat() {
 
-    let mut z = ZigExp::new(MT19937::new(Some(19937)));
+    let mut z = Ziggurat::new(MT19937::new(Some(19937)));
     let v = z.get_n(N);
     // mean should be < 1/lambda (=1) so sum should be ~N
     let eps = 2.0 * (N as f64).sqrt();

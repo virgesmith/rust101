@@ -11,4 +11,4 @@ pub mod normal;
 pub mod exponential;
 
 pub mod moments;
-//pub mod zigexp;
+pub mod compare;

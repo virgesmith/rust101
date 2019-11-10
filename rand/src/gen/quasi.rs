@@ -82,9 +82,9 @@ impl Resettable for Sobol {
   }
 
   fn skip(&mut self, n: u32) -> &mut Self {
-    println!("{:?}", self.cache);
+    //println!("{:?}", self.cache);
     unsafe { nlopt_sobol_skip(self.pimpl, n * self.dim, &self.cache[0]); }
-    println!("{:?}", self.cache);
+    //println!("{:?}", self.cache);
     self
   }
 }

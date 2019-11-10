@@ -29,7 +29,7 @@ mod test {
   use crate::dist::continuous::Normal;
 
   #[test]
-  fn test_normal_moments() {
+  fn normal_moments() {
     let n = 1000000;
     let err_p = 3.0 / (n as f64).sqrt();
     // TODO Sobol convergence doesn't look right
