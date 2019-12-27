@@ -1,8 +1,10 @@
-var addon = require('../native');
+'use strict';
 
-module.exports.cpus = addon.thread_count;
-module.exports.hello = addon.hello;
-module.exports.objop = addon.objop;
+const nm = require('../native');
+
+module.exports.cpus = nm.cpu_count;
+module.exports.hello = nm.hello;
+module.exports.objop = nm.objop;
 
 // alternatively load the native module directly
 // neon_module=require("./native/")
