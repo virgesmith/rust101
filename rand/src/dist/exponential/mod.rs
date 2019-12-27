@@ -33,23 +33,11 @@ pub fn inv_cdf(f: f64, lambda: f64) -> f64 {
 #[cfg(test)]
 mod test {
   use super::*;
-  use crate::dist::compare::{close_abs_eps, close_rel_eps};
+  use crate::dist::compare::close_rel_eps;
 
 
   #[test]
   fn exp_basics() {
-    assert!(close_abs_eps(pdf(-1.0, 1.0), 0.0, None));
-    assert!(close_rel_eps(pdf(1.0, 1.0), (-1.0f64).exp(), None));
-    assert!(close_rel_eps(pdf(1.0, 2.0), 2.0 * (-2.0f64).exp(), None));
-    assert!(close_rel_eps(pdf(2.0, 1.0), (-2.0f64).exp(), None));
-    assert!(close_abs_eps(pdf(std::f64::INFINITY, 1.0), 0.0, None));
-
-    assert!(close_abs_eps(cdf(-1.0, 1.0), 0.0, None));
-    assert!(close_rel_eps(cdf(1.0, 1.0), 1.0 - (-1.0f64).exp(), None));
-    assert!(close_rel_eps(cdf(1.0, 2.0), 1.0 - (-2.0f64).exp(), None));
-    assert!(close_rel_eps(cdf(2.0, 1.0), 1.0 - (-2.0f64).exp(), None));
-    assert!(close_abs_eps(cdf(std::f64::INFINITY, 1.0), 1.0, None));
-
     for i in 1..10 {
       let x = i as f64;
       assert!(close_rel_eps(inv_cdf(cdf(x, 1.0), 1.0), x, Some(1024.0 * std::f64::EPSILON)));
