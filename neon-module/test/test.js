@@ -10,6 +10,16 @@ console.log(nm.cpu_count());
 
 console.log(nm.objop(data));
 
-console.log(nm.fibonacciSync(13));
+console.log(nm.fibonacci(13));
 
-nm.fibonacci(13, (e,r) => { if (e) console.log(e); else console.log(r); });
+console.log(nm.fibonacci(-13));
+// error thrown but not caught 
+// try {
+//   nm.fibonacci(-13);
+// }
+// catch(e)
+// {
+//   console.log(e);
+// }
+
+nm.fibonacci_async(-13, (e,r) => { if (e) console.error(e); else console.log(r); });

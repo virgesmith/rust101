@@ -67,14 +67,21 @@ fn compute(n: usize) -> BigUint {
 }
 
 fn fibonacci(mut cx: FunctionContext) -> JsResult<JsString> {
-	let n = cx.argument::<JsNumber>(0)?.value() as usize;
-	let big = compute(n);
-	Ok(cx.string(big.to_str_radix(10)))
+	let n = cx.argument::<JsNumber>(0)?.value();
+	match n {
+		n if n >= 0.0 => {
+			let big = compute(n as usize);
+			Ok(cx.string(big.to_str_radix(10)))
+		},
+		//_ => cx.throw_range_error("argument cannot be negative") //not caught in js catch???
+		_ => Ok(cx.string("argument cannot be negative"))
+	}
 }
 
 struct FibonacciTask {
-	argument: usize,
+	argument: f64
 }
+
 
 impl Task for FibonacciTask {
 	type Output = BigUint;
@@ -82,16 +89,22 @@ impl Task for FibonacciTask {
 	type JsEvent = JsString;
 
 	fn perform(&self) -> Result<BigUint, ()> {
-		Ok(compute(self.argument))
+		match self.argument {
+			n if n >= 0.0 => Ok(compute(self.argument as usize)),
+			_ => Err(())
+		}
 	}
 
 	fn complete(self, mut cx: TaskContext, result: Result<BigUint, ()>) -> JsResult<JsString> {
-		Ok(cx.string(result.unwrap().to_str_radix(10)))
+		match result {
+			Ok(v) => Ok(cx.string(v.to_str_radix(10))),
+			Err(_) => cx.throw_range_error("argument cannot be negative")
+		}
 	}
 }
 
 fn fibonacci_async(mut cx: FunctionContext) -> JsResult<JsUndefined> {
-	let n = cx.argument::<JsNumber>(0)?.value() as usize;
+	let n = cx.argument::<JsNumber>(0)?.value();
 	let cb = cx.argument::<JsFunction>(1)?;
 
 	let task = FibonacciTask { argument: n };
@@ -100,11 +113,11 @@ fn fibonacci_async(mut cx: FunctionContext) -> JsResult<JsUndefined> {
 	Ok(cx.undefined())
 }
 
-register_module!(mut cx, {
-	cx.export_function("hello", hello)?;
-	cx.export_function("objop", objop)?;
-	cx.export_function("cpu_count", cpu_count)?;
-	cx.export_function("fibonacci", fibonacci)?;
-	cx.export_function("fibonacci_async", fibonacci_async)?;
+register_module!(mut module, {
+	module.export_function("hello", hello)?;
+	module.export_function("objop", objop)?;
+	module.export_function("cpu_count", cpu_count)?;
+	module.export_function("fibonacci", fibonacci)?;
+	module.export_function("fibonacci_async", fibonacci_async)?;
 	Ok(())
 });
