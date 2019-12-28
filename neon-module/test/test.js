@@ -1,18 +1,20 @@
 'use strict';
-
+const assert = require('assert');
 const nm = require("../native");
 
 var data = { id: "me", values: [1, 2, 3], x: 1.0, sub: { id: "sub", flag: true } };
 
-console.log(nm.hello());
+const res = nm.hello();
+assert.equal(res.id, "node");
+assert.deepEqual(res.values, [2,3,5,7,11,13,17,19]);
 
-console.log(nm.cpu_count());
+data = nm.objop(data);
+assert.equal(data.id, "me.rs");
+assert.equal(data.sub.id, "sub");
 
-console.log(nm.objop(data));
+assert.strictEqual(nm.fibonacci(13), '233');
 
-console.log(nm.fibonacci(13));
-
-console.log(nm.fibonacci(-13));
+assert.strictEqual(nm.fibonacci(-13), "argument cannot be negative");
 // error thrown but not caught 
 // try {
 //   nm.fibonacci(-13);
@@ -22,4 +24,7 @@ console.log(nm.fibonacci(-13));
 //   console.log(e);
 // }
 
-nm.fibonacci_async(-13, (e,r) => { if (e) console.error(e); else console.log(r); });
+//nm.fibonacci_async(-13, (e,r) => { if (e) console.error(e.message); else console.log(r); });
+
+nm.fibonacci_async(13, (e,r) => { assert.equal(r, '233'); assert(e == null) });
+nm.fibonacci_async(-13, (e,r) => { assert.equal(r, null); assert.equal(e.message, "argument cannot be negative") });
