@@ -9,3 +9,7 @@ console.log(nm.hello());
 console.log(nm.cpu_count());
 
 console.log(nm.objop(data));
+
+console.log(nm.fibonacciSync(13));
+
+nm.fibonacci(13, (e,r) => { if (e) console.log(e); else console.log(r); });
