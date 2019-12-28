@@ -13,18 +13,17 @@ assert.equal(data.id, "me.rs");
 assert.equal(data.sub.id, "sub");
 
 assert.strictEqual(nm.fibonacci(13), '233');
-
-assert.strictEqual(nm.fibonacci(-13), "argument cannot be negative");
-// error thrown but not caught 
-// try {
-//   nm.fibonacci(-13);
-// }
-// catch(e)
-// {
-//   console.log(e);
-// }
+assert.throws(() => { nm.fibonacci(-13); }, { name: "RangeError", message: "argument cannot be negative"});
 
 //nm.fibonacci_async(-13, (e,r) => { if (e) console.error(e.message); else console.log(r); });
 
-nm.fibonacci_async(13, (e,r) => { assert.equal(r, '233'); assert(e == null) });
-nm.fibonacci_async(-13, (e,r) => { assert.equal(r, null); assert.equal(e.message, "argument cannot be negative") });
+nm.fibonacci_async(13, (e,r) => { 
+  assert.equal(r, '233'); 
+  assert(e == null) 
+});
+nm.fibonacci_async(-13, (e,r) => { 
+  assert.equal(r, null); 
+  assert.equal(e.name, "RangeError");
+  assert.equal(e.message, "argument cannot be negative") 
+});
+

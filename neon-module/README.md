@@ -12,27 +12,10 @@ Build:
 $ neon build --release
 
 ```
-Run:
+Test:
 ```js
-$ node
-Welcome to Node.js v12.14.0.
-Type ".help" for more information.
-> neon=require("./native");
-{ hello: [Function], objop: [Function], thread_count: [Function] }
-> neon.hello()
-{
-  id: 'node',
-  values: [
-     2,  3,  5,  7,
-    11, 13, 17, 19
-  ],
-  x: 4
-}
-> neon.thread_count()
-4
-> data={id:"me", values:[1,2,3], x:1.0}
-{ id: 'me', values: [ 1, 2, 3 ], x: 1 }
-> data=neon.objop(data)
-{ id: 'me_', values: [ 1, 2, 3, 9, 8, 7 ], x: 1.5 }
->
+$ npm test
+
+> neon-module@0.1.0 test /mnt/data/home/az/dev/rust101/neon-module
+> node test/test.js
 ```

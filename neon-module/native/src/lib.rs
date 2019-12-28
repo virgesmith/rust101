@@ -66,15 +66,15 @@ fn compute(n: usize) -> BigUint {
 	f0
 }
 
-fn fibonacci(mut cx: FunctionContext) -> JsResult<JsString> {
+// to "throw" return type needs to be JsValue (to allow for JsError to be returned?)
+fn fibonacci(mut cx: FunctionContext) -> JsResult<JsValue> {
 	let n = cx.argument::<JsNumber>(0)?.value();
 	match n {
 		n if n >= 0.0 => {
 			let big = compute(n as usize);
-			Ok(cx.string(big.to_str_radix(10)))
+			Ok(cx.string(big.to_str_radix(10)).upcast())
 		},
-		//_ => cx.throw_range_error("argument cannot be negative") //not caught in js catch???
-		_ => Ok(cx.string("argument cannot be negative"))
+		_ => cx.throw_range_error("argument cannot be negative")
 	}
 }
 
@@ -86,7 +86,7 @@ struct FibonacciTask {
 impl Task for FibonacciTask {
 	type Output = BigUint;
 	type Error = ();
-	type JsEvent = JsString;
+	type JsEvent = JsValue;
 
 	fn perform(&self) -> Result<BigUint, ()> {
 		match self.argument {
@@ -95,9 +95,9 @@ impl Task for FibonacciTask {
 		}
 	}
 
-	fn complete(self, mut cx: TaskContext, result: Result<BigUint, ()>) -> JsResult<JsString> {
+	fn complete(self, mut cx: TaskContext, result: Result<BigUint, ()>) -> JsResult<JsValue> {
 		match result {
-			Ok(v) => Ok(cx.string(v.to_str_radix(10))),
+			Ok(v) => Ok(cx.string(v.to_str_radix(10)).upcast()),
 			Err(_) => cx.throw_range_error("argument cannot be negative")
 		}
 	}

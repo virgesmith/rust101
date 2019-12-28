@@ -7,7 +7,7 @@ build = "build.rs"
 exclude = ["artifacts.json", "index.node"]
 
 [lib]
-name = "thread_count"
+name = "neon_module"
 crate-type = ["cdylib"]
 
 [build-dependencies]
