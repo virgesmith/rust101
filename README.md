@@ -17,15 +17,14 @@ I've a C++ background (high-performance numerical computing) and Rust sounded in
 
 |*Contents*
 |----------
-|[crypto](#crypto)           |
+|[crypto](#crypto)
 |[linked-list](#linked-list)
 |[neon-module](#neon-module)
 |[number](#number)
-|[rand](#rand)               |
+|[rand](#rand)
 |[rectangle](#rectangle)
 |[vector](#vector)
 |[webserver](#server)
-
 
 ## Crypto
 
@@ -41,11 +40,11 @@ The package contains a core library and a number of command-line utilities:
 
 ## neon-module
 
-node.js bindings for rust, JSON (de)serialisation, async functions.
+node.js bindings for rust, JSON (de)serialisation, async functions. More [here](neon-module/README.md)...
 
 ## Number
 
-I'm new to algebraic enumerations and I like them! A lot.
+This is an attempt to understand algebraic enumerations...
 
 If you think the (signed) integer absolute value function `int abs(int)` is safe (in terms of having well-defined output for any input) you'd be wrong!
 The way two's complement works means there's one more negative integer than positive: with 8 bits that means the range of values is -128..127. So `abs(-128)` return value is outside its domain. 
@@ -111,7 +110,7 @@ fn sqrt(x: f64) -> Number<f64> {
   }
 }
 ```
-and for logarithm, the result is negative infinity for zero, complex for negative input, otherwise real.
+and for logarithm, the result* is negative infinity for zero, complex for negative input, otherwise real.
 ```rust
 fn ln(x: f64) -> Number<f64> {
   match x {
@@ -120,7 +119,9 @@ fn ln(x: f64) -> Number<f64> {
     _ => Number::R(x.ln())
   }
 }
+
 ```
+* i = (2n+1).pi for all integer n, we just take the n=0 root. 
 
 ## Rand
 

@@ -72,7 +72,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     match result.0 {
       Some(r) => { 
         println!("thread {} found ADDR: {}", i, address::p2pkh(&r.public_key()?));
-        println!("WIF: {}", address::wif(r.private_key()?));
+        println!("WIF: {}", address::wif(&r.private_key()?));
       },
       // The thread didnt find the address 
       None => continue,

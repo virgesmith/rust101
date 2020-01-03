@@ -14,9 +14,9 @@ pub fn p2pkh(pubkey: &[u8]) -> String {
   base58::from_bytes(addr)
 }
 
-pub fn wif(prvkey: Vec<u8>) -> String {
+pub fn wif(prvkey: &Vec<u8>) -> String {
 
-  let mut data = prvkey;
+  let mut data = prvkey.clone();
   // prepend network byte (wif)
   data.insert(0, 128);
   // append 1 (not sure why)
