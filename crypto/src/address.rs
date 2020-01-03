@@ -41,7 +41,7 @@ mod tests {
 
     let a = p2pkh(&pubkey);
     assert_eq!(a, "1GGZnReKybChriBrvxEDWsQqQJBLQHvRzW");
-    let w = wif(prvkey.to_vec());
+    let w = wif(&prvkey.to_vec());
     assert_eq!(w, "L2Bbdwmcs188qfBWjhGi95P6sxVeGbvS1zQsnvpcAc4h1864jJXD");    
   }
 }

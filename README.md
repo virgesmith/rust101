@@ -151,8 +151,9 @@ and the distributions:
 - Discrete weighted
 - Discrete without-replacement
 - Continuous uniform
-- Normal, two variants: 
+- Normal, there variants: 
   - Marsaglia's polar version of the Box-Muller algorithm, 
+  - Marsaglia's ziggurat algorithm,
   - Acklam's approximation to the inverse normal CDF
 - Exponential (using inverse CDF)
 
@@ -193,7 +194,7 @@ A simple web server
 
 ## Linked List
 
-A linked list implementation using algebraic enums, based on a codewars kata solution
+A linked list implementation using algebraic enums, based on a codewars kata solution. See [here](cons.rs).
 
 ## Vector
 
