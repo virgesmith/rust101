@@ -10,20 +10,41 @@ I've a C++ background (high-performance numerical computing) and Rust sounded in
 
 #### Disclaimers
 - spoiler alert: this repo contains solutions to some codewars Kata
-- none of the code here is intended to be production quality. 
+- none of the code here is intended to be production quality.
 
 ### Resources
 - https://doc.rust-lang.org/
 
-## Rectangle
-This is basically a few attempts at shoehorning C++ ways of doing things (classes, templates) into rust. 
+|*Contents*
+|----------
+|[crypto](#crypto)           |
+|[linked-list](#linked-list)
+|[neon-module](#neon-module)
+|[number](#number)
+|[rand](#rand)               |
+|[rectangle](#rectangle)
+|[vector](#vector)
+|[webserver](#server)
 
-## Vanity
-A port of some C++ code I wrote to generate bitcoin vanity addresses. A nice simple problem for concurrency. Threads only need to talk when one of them has found the answer.
 
-It's actually running faster than my C++ implementation, given enough threads. (There seems to be some thread blocking issue with openssl in my C++ implementation that means you don't see any performance improvement by increasing the number of threads - I 'fixed' it by using MPI)
+## Crypto
+
+A port of some C++ code I wrote to do some cryptocurrency-related tasks - hashing, EC keys, signing, verifying, and generation of bitcoin vanity addresses. The latter is a nice a nice simple problem for concurrency - threads only need to talk when one of them has found the answer.
+
+The package contains a core library and a number of command-line utilities:
+- `hash160` sha-256 + ripemd160 hash of an input file
+- `hash256` sha-256 x 2 hash of an input file 
+- `pubKey` takes a pem-encoded private key file and prints the public key in various formats, including a BTC address (p2pkh)
+- `prvKey` takes a pem-encoded private key file and prints the private key in various formats, including BTC wallet import format (WIF) 
+- `sign` computes an ECDSA signature of a hash of the specified file, given a pem-encoded private key file 
+- `verify` checks an ECDSA signature against a file and a (hex-encoded) public key  
+
+## neon-module
+
+node.js bindings for rust, JSON (de)serialisation, async functions.
 
 ## Number
+
 I'm new to algebraic enumerations and I like them! A lot.
 
 If you think the (signed) integer absolute value function `int abs(int)` is safe (in terms of having well-defined output for any input) you'd be wrong!
@@ -104,10 +125,10 @@ fn ln(x: f64) -> Number<f64> {
 ## Rand
 
 A random number library. More reinventing the wheel to learn rust, specifically:
-- package structure and tests, documentation, and doctests.
-- how to integrate with C and C++,
+- package structure and tests, documentation, and doctests
+- how to integrate with C and C++
 - using traits to define relationships (or lack thereof) between types
-- iterators
+- iterators and functional constucts
 
 The following generators are implemented:
 - C++11 minstd implementation of an LCG generator
@@ -160,6 +181,10 @@ error[E0599]: no function or associated item named `new` found for type `dist::c
             `gen::quasi::Sobol : gen::Rejectable`
 ```
 the point being that the polar algorithm is a rejection algorithm and Sobol sequences require all variates to be used to preserve their statistical properties. Thus, `Sobol` doesn't implement the `Rejectable` trait which is made a requirement for `Polar`'s template parameter. 
+
+## Rectangle
+
+This is basically a few attempts at shoehorning C++ ways of doing things (classes, templates) into rust. 
 
 ## Server
 
