@@ -20,7 +20,7 @@ I've a C++ background (high-performance numerical computing) and Rust sounded in
 |[crypto](#crypto)
 |[linked-list](#linked-list)
 |[neon-module](#neon-module)
-|[number](#number)
+|[complex](#complex)
 |[rand](#rand)
 |[rectangle](#rectangle)
 |[vector](#vector)
@@ -42,9 +42,39 @@ The package contains a core library and a number of command-line utilities:
 
 node.js bindings for rust, JSON (de)serialisation, async functions. More [here](neon-module/README.md)...
 
+## Complex
+
+Reinventing the wheel to learn how operator overloading works in rust. Which seem to be a little restrictive for noncommutative operations - the first argument must be your new type, e.g this doesn't seem (from what I understand) to be possible
+
+```rust
+impl<T> Div<T> for Cplx<T>
+where
+  T: Into<f64> + Float + Copy,
+{
+  type Output = Cplx<T>;
+  fn div(&self, rhs: T) -> Cplx<T> {
+    Cplx {
+      r: &self.r / rhs,
+      i: &self.i / rhs,
+    }
+  }
+}
+...  
+let i = Cplx<f64>::new(0.0, 1.0);
+let z = 2.0 / i;
+            ^ no implementation for `{float} / Cplx<f64>`
+```
+so I just implemented a `recip()` function:
+
+```rust
+  pub fn recip(&self) -> Cplx<T> {
+    Cplx::from_normarg(T::one() / self.norm(), -self.arg())
+  }
+```
+
 ## Number
 
-This is an attempt to understand algebraic enumerations...
+This was an attempt to understand algebraic enumerations... NB the code no longer closely reflects what follows.
 
 If you think the (signed) integer absolute value function `int abs(int)` is safe (in terms of having well-defined output for any input) you'd be wrong!
 The way two's complement works means there's one more negative integer than positive: with 8 bits that means the range of values is -128..127. So `abs(-128)` return value is outside its domain. 
@@ -61,7 +91,7 @@ int myabs(int x)
 ```
 will kill performance - this function might get called *a lot*. You could tell the CPU/signal handler (structured exception handler in Windows terms) to raise an integer overflow exception, but beware: any 3rd party library you depend on might not function as advertised if you change these settings, and, you've no guarantee that any code that *calls* your code hasn't changed the settings itself, and/or might do so while your library is loaded. In practice (my experience at least) is you trap the exception at hardware level when you're running your *comprehensive set of regression tests*, but in production you just hope for the best...
 
-Likewise, plenty of floating point operations can return numbers outside the real number domain (never mind outside the IEE754 specification), such as `ln(0.0)` and `sqrt(-1.0)`. Whilst the IEEE754 spec provides for infinity (and NaN), unless you check at runtime, these values will just permetate through your computations like a super-contagious virus unless you put in loads of performance-crippling runtime checks.
+Likewise, plenty of floating point operations can return numbers outside the real number domain (never mind outside the IEE754 specification), such as `ln(0.0)` and `sqrt(-1.0)`. Whilst the IEEE754 spec provides for infinity (and NaN), unless you implement performance-crippling runtime checks, these values will just permetate through your computations corrupting the results.
 
 So, basically, you don't really solve it. You just either compromise performance, or hope that you have sufficient regression tests and sanity checks that cover (and continue to cover) production use cases.
 
@@ -98,7 +128,7 @@ enum Number<T> where T: Into<f64> {
 ```
 where
 - `T` must be castable to a double 
-- there's only one infinity, unlike IEEE754 (but would be a simple modification to have positive and negative)
+- infinity is a special case, like IEEE754 there are positive and negative variants
 
 So for `sqrt` its either real or imaginary, depending on sign:
 
@@ -115,7 +145,7 @@ and for logarithm, the result* is negative infinity for zero, complex for negati
 fn ln(x: f64) -> Number<f64> {
   match x {
     x if x < 0.0 => Number::C{ r: (-x).ln(), i: std::f64::consts::PI },
-    x if x == 0.0 => Number::Inf(),
+    x if x == 0.0 => Number::Inf(true),
     _ => Number::R(x.ln())
   }
 }
@@ -129,7 +159,7 @@ A random number library. More reinventing the wheel to learn rust, specifically:
 - package structure and tests, documentation, and doctests
 - how to integrate with C and C++
 - using traits to define relationships (or lack thereof) between types
-- iterators and functional constucts
+- iterators and functional constructs
 
 The following generators are implemented:
 - C++11 minstd implementation of an LCG generator
@@ -151,13 +181,13 @@ and the distributions:
 - Discrete weighted
 - Discrete without-replacement
 - Continuous uniform
-- Normal, there variants: 
+- Normal, three variants: 
   - Marsaglia's polar version of the Box-Muller algorithm, 
   - Marsaglia's ziggurat algorithm,
   - Acklam's approximation to the inverse normal CDF
 - Exponential (using inverse CDF)
 
-have different "trait bounds", the point being to structure the code so that it's not possible to combine invalid combinations of random streams and distribution algorithms, thus:
+...have different "trait bounds", the point being to structure the code so that it's not possible to combine invalid combinations of random streams and distribution algorithms, thus:
 ```rust
 let mut dist = Normal::<InverseCumulative<Sobol>>::new(0.0, 1.0, Sobol::new(1));
 ```
