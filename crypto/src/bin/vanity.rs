@@ -3,10 +3,7 @@ use crypto::base58;
 use crypto::address;
 use crypto::key::Key;
 
-// use openssl::ec::{EcKey,EcGroup,PointConversionForm};
-// use openssl::pkey::Private;
-// use openssl::nid::Nid;
-// use openssl::bn::BigNumContext;
+//use rand::gen::*;
 
 use std::env;
 use std::thread;
@@ -71,7 +68,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     total_tries += result.1;
     match result.0 {
       Some(r) => { 
-        println!("thread {} found ADDR: {}", i, address::p2pkh(&r.public_key()?));
+        println!("thread {} found key {}", i, hex::encode(&r.private_key()?)); 
+        println!("ADDR: {}", address::p2pkh(&r.public_key()?));
         println!("WIF: {}", address::wif(&r.private_key()?));
       },
       // The thread didnt find the address 
@@ -91,9 +89,24 @@ fn worker(vanity: String, pair: Arc<(Mutex<bool>, Condvar)>) -> (Option<Key>, us
   let &(ref lock, ref cvar) = &*pair;
 
   let mut i = 0;
+  let mut rng = pseudo::LCG::new(None);
 
   loop {
 
+    // //let prv = rng.next_n(32/4).into_iter().fold(Vec::<u8>::new(), |acc, v32| acc.append(v32.to_be_bytes()) );
+    // let prv32 = rng.next_n(32/4);
+    // let mut prv8 = [0u8;32];
+    // for i in 0..prv32.len() {
+    //   let block = prv32[i].to_be_bytes();
+    //   prv8[i*4] = block[0];
+    //   prv8[i*4+1] = block[1];
+    //   prv8[i*4+2] = block[2];
+    //   prv8[i*4+3] = block[3];      
+    //   //prv8.append(&mut val32.to_be_bytes().to_vec());
+    // }
+    // let key = Key::from_private_bytes(&prv8).unwrap();
+
+    // this is no slower than using an external RNG to generate the private key
     let key = Key::new().unwrap();
     let bytes = key.public_key().unwrap();
 
