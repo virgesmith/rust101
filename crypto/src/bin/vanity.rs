@@ -108,7 +108,7 @@ fn worker(vanity: String, pair: Arc<(Mutex<bool>, Condvar)>) -> (Option<Key>, us
 
     // this is no slower than using an external RNG to generate the private key
     //let key = Key::new().unwrap();
-    let bytes = key.public_key().unwrap();
+    let bytes = key.compressed_public_key().unwrap();
 
     let addr = address::p2pkh(&bytes);
     let cmp = &addr[1..vanity.len()+1];

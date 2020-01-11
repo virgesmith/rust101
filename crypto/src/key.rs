@@ -46,9 +46,17 @@ impl Key {
     Ok(Key{ key_impl: EcKey::from_private_components(&EC_GRP, &prv, &pbl)? })
   }
 
-  pub fn public_key(&self) -> Result<Vec<u8>, Box<dyn Error>> {
+  fn public_key_impl(&self, form: PointConversionForm) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut ctx = BigNumContext::new()?;
-    Ok(self.key_impl.public_key().to_bytes(&EC_GRP, PointConversionForm::COMPRESSED, &mut ctx)?)
+    Ok(self.key_impl.public_key().to_bytes(&EC_GRP, form, &mut ctx)?)
+  }
+
+  pub fn public_key(&self)  -> Result<Vec<u8>, Box<dyn Error>> {
+    self.public_key_impl(PointConversionForm::UNCOMPRESSED)
+  }
+
+  pub fn compressed_public_key(&self)  -> Result<Vec<u8>, Box<dyn Error>> {
+    self.public_key_impl(PointConversionForm::COMPRESSED)
   }
 
   pub fn private_key(&self) -> Result<Vec<u8>, Box<dyn Error>> {
@@ -93,9 +101,17 @@ impl PubKey {
 
   // }
 
-  pub fn public_key(&self) -> Result<Vec<u8>, Box<dyn Error>> {
+  fn public_key_impl(&self, form: PointConversionForm) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut ctx = BigNumContext::new()?;
-    Ok(self.key_impl.public_key().to_bytes(&EC_GRP, PointConversionForm::COMPRESSED, &mut ctx)?)
+    Ok(self.key_impl.public_key().to_bytes(&EC_GRP, form, &mut ctx)?)
+  }
+
+  pub fn public_key(&self) -> Result<Vec<u8>, Box<dyn Error>> {
+    self.public_key_impl(PointConversionForm::UNCOMPRESSED)
+  }
+
+  pub fn compressed_public_key(&self) -> Result<Vec<u8>, Box<dyn Error>> {
+    self.public_key_impl(PointConversionForm::COMPRESSED)
   }
 
   pub fn verify(&self, msg: &[u8], sig: &Vec<u8>) -> Result<bool, Box<dyn Error>>  {
@@ -103,5 +119,57 @@ impl PubKey {
   }
 }
 
+#[cfg(test)]
+mod tests {
+  use super::*;
 
-// extract key
+  #[test]
+  fn test0() {
+    let prvbytes: [u8; 32] = [0x94, 0x19, 0x9c, 0x35, 0xc8, 0x84, 0x8e, 0x03, 0xe9, 0xcb, 0x43, 0x80, 0xef, 0x71, 0x2b, 0xc0, 
+                            0x77, 0xa5, 0x99, 0x1f, 0xa0, 0xbb, 0xf2, 0xc4, 0xa4, 0x0b, 0x03, 0x53, 0xe3, 0xad, 0x6c, 0x27];
+
+    let prvkey = Key::from_private_bytes(&prvbytes).unwrap();
+
+    assert_eq!(prvkey.private_key().unwrap(), prvbytes);
+
+    let c_pubbytes: [u8; 33] = [2, 246, 117, 90, 253, 87, 182, 218, 67, 232, 238, 200, 20, 75, 94, 254, 99, 249, 2, 204, 193, 152, 
+                              4, 97, 252, 102, 67, 86, 113, 245, 75, 234, 2];
+
+    let pubkey = PubKey::from_bytes(&c_pubbytes).unwrap();
+    assert_eq!(&pubkey.compressed_public_key().unwrap(), &c_pubbytes.to_vec());
+
+    let u_pubbytes: [u8; 65] = [4, 246, 117, 90, 253, 87, 182, 218, 67, 232, 238, 200, 20, 75, 94, 254, 99, 249, 2, 204, 193, 152, 
+                              4, 97, 252, 102, 67, 86, 113, 245, 75, 234, 2, 20, 124, 143, 146, 74, 30, 124, 190, 102, 230, 205, 
+                              240, 101, 50, 19, 99, 81, 216, 134, 70, 128, 148, 169, 63, 137, 233, 148, 250, 142, 187, 208, 128];
+    let pubkey = PubKey::from_bytes(&u_pubbytes).unwrap();
+    assert_eq!(&pubkey.public_key().unwrap(), &u_pubbytes.to_vec());                 
+  }
+  #[test]
+  fn test1() {
+    let bytes : [u8; 32] = [0x94, 0x19, 0x9c, 0x35, 0xc8, 0x84, 0x8e, 0x03, 0xe9, 0xcb, 0x43, 0x80, 0xef, 0x71, 0x2b, 0xc0, 
+                            0x77, 0xa5, 0x99, 0x1f, 0xa0, 0xbb, 0xf2, 0xc4, 0xa4, 0x0b, 0x03, 0x53, 0xe3, 0xad, 0x6c, 0x27];
+
+    let key = Key::from_private_bytes(&bytes).unwrap();
+    let chex = "02f6755afd57b6da43e8eec8144b5efe63f902ccc1980461fc66435671f54bea02";
+    let uhex = "04f6755afd57b6da43e8eec8144b5efe63f902ccc1980461fc66435671f54bea02147c8f924a1e7cbe66e6cdf06532136351d886468094a93f89e994fa8ebbd080";
+
+    // directly get public key from private key
+    let c_pubbytes = key.compressed_public_key().unwrap();
+    assert_eq!(c_pubbytes.len(), 33 as usize);
+    assert_eq!(hex::encode(c_pubbytes), chex);
+
+    let u_pubbytes = key.public_key().unwrap();
+    assert_eq!(u_pubbytes.len(), 65 as usize);
+    assert_eq!(hex::encode(u_pubbytes), uhex);
+
+    // construct a PubKey object and extract
+    let pubkey = key.to_pubkey().unwrap();
+    let c_pubbytes = pubkey.compressed_public_key().unwrap();
+    assert_eq!(c_pubbytes.len(), 33 as usize);
+    assert_eq!(hex::encode(c_pubbytes), chex);
+
+    let u_pubbytes = pubkey.public_key().unwrap();
+    assert_eq!(u_pubbytes.len(), 65 as usize);
+    assert_eq!(hex::encode(u_pubbytes), uhex);
+  }
+}

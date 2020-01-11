@@ -20,6 +20,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
   let pubkey = Key::from_pem_file(filename)?.public_key()?;
 
+  println!("Uncompressed form public key data");
+  println!("hex: {}", hex::encode(&pubkey));
+  println!("base64: {}", base64::encode(&pubkey));
+  println!("rust: [u8; 65] = {:?}", &pubkey);
+
+  let pubkey = Key::from_pem_file(filename)?.compressed_public_key()?;
+
   println!("Compressed form public key data");
   println!("hex: {}", hex::encode(&pubkey));
   println!("base64: {}", base64::encode(&pubkey));
