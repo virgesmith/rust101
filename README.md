@@ -17,10 +17,11 @@ I've a C++ background (high-performance numerical computing) and Rust sounded in
 
 |*Contents*
 |----------
+|[complex](#complex)
 |[crypto](#crypto)
 |[linked-list](#linked-list)
 |[neon-module](#neon-module)
-|[complex](#complex)
+|[pycrypto](#pycrypto)
 |[rand](#rand)
 |[rectangle](#rectangle)
 |[vector](#vector)
@@ -28,7 +29,7 @@ I've a C++ background (high-performance numerical computing) and Rust sounded in
 
 ## Crypto
 
-A port of some C++ code I wrote to do some cryptocurrency-related tasks - hashing, EC keys, signing, verifying, and generation of bitcoin vanity addresses. The latter is a nice a nice simple problem for concurrency - threads only need to talk when one of them has found the answer.
+A port of some C++ code I wrote to do some cryptocurrency-related tasks - command-line tools for hashing, EC keys, signing, verifying, and generation of bitcoin vanity addresses. The latter is a nice a nice simple problem for concurrency - threads only need to talk when one of them has found the answer.
 
 The package contains a core library and a number of command-line utilities:
 - `hash160` sha-256 + ripemd160 hash of an input file
@@ -37,6 +38,11 @@ The package contains a core library and a number of command-line utilities:
 - `prvKey` takes a pem-encoded private key file and prints the private key in various formats, including BTC wallet import format (WIF) 
 - `sign` computes an ECDSA signature of a hash of the specified file, given a pem-encoded private key file 
 - `verify` checks an ECDSA signature against a file and a (hex-encoded) public key  
+- `vanity` randomly searches EC keys until one is found that maps to a base-58 P2PKH address beginning '1' + the search string, e.g `vanity BTC` will return an address beginning `1BTC  ) 
+
+## PyCrypto
+
+Python bindings for the [crypto](#crypto), using `pyo3` and `maturin`, more [here](./pycrypto/README.md).
 
 ## neon-module
 
@@ -44,7 +50,7 @@ node.js bindings for rust, JSON (de)serialisation, async functions. More [here](
 
 ## Complex
 
-Reinventing the wheel to learn how operator overloading works in rust. Which seem to be a little restrictive for noncommutative operations - the first argument must be your new type, e.g this doesn't seem (from what I understand) to be possible
+Reinventing the wheel to learn (mainly) how operator overloading works in rust. Which seem to be a little restrictive for noncommutative operations - the first argument must be your new type, e.g this doesn't seem (from what I understand) to be possible with the normal implementation
 
 ```rust
 impl<T> Div<T> for Cplx<T>
@@ -59,12 +65,18 @@ where
     }
   }
 }
-...  
+```
+but a signature like this:
+```
+  fn div(lhs: T, &self) -> Cplx<T> {
+```
+which doesn't seem to be allowed, so
+```  
 let i = Cplx<f64>::new(0.0, 1.0);
 let z = 2.0 / i;
             ^ no implementation for `{float} / Cplx<f64>`
 ```
-so I just implemented a `recip()` function:
+as a workaround I just implemented a `recip()` function:
 
 ```rust
   pub fn recip(&self) -> Cplx<T> {

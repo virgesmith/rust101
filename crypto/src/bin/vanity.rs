@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn Error>> {
   }
 
   // Use u8 to ensure threads <= 256, defaulting to 1
-  let threads: usize = if args.len() == 3 { 
+  let threads = if args.len() == 3 { 
     match args[2].parse::<u8>() {
       Ok(0) => { println!("zero threads requested, actually using 1 thread"); 1 },
       Ok(n) => n,
@@ -69,7 +69,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     match result.0 {
       Some(r) => { 
         println!("thread {} found key {}", i, hex::encode(&r.private_key()?)); 
-        println!("ADDR: {}", address::p2pkh(&r.public_key()?));
+        println!("ADDR: {}", address::p2pkh(&r.compressed_public_key()?));
         println!("WIF: {}", address::wif(&r.private_key()?));
       },
       // The thread didnt find the address 
