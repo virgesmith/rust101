@@ -1,5 +1,7 @@
 # Python-rust binding with pyo3 and maturin
 
+This replicates the functionality of the command-line crypto module as a python package
+
 ## Prerequisites
 
 This uses the py03 crate, which requires nightly rust. It can be used for creating rust-implemented python packages and also for embedding python into a rust app (or both).

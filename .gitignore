@@ -19,3 +19,6 @@ Cargo.lock
 
 so/
 cw/
+
+node_modules/
+.venv/
