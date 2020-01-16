@@ -6,3 +6,6 @@ pub mod base58;
 pub mod hash;
 pub mod key;
 pub mod vanity;
+pub mod error;
+
+type CryptoResult<T> = Result<T, Box<dyn std::error::Error>>;

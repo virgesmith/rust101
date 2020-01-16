@@ -2,49 +2,29 @@
 use crate::key::Key;
 use crate::address;
 use crate::base58;
+use crate::error::Error;
+use crate::CryptoResult;
 
 use rand::gen::*;
 
 use std::thread;
 use std::sync::{Arc, Mutex, Condvar};
-use std::fmt;
-use std::error::Error;
 
-#[derive(Debug, Clone)]
-enum VanityError {
-  InvalidDigits(String),
-  TooLong(String)
-}
-
-impl fmt::Display for VanityError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match *self {
-      VanityError::InvalidDigits(ref s) => write!(f, "invalid search string: {}", s),
-      VanityError::TooLong(ref s) => write!(f, "search string is too long: {}", s),
-    }
-  }
-}
-
-impl Error for VanityError {
-  fn source(&self) -> Option<&(dyn Error + 'static)> {
-    None
-  }
-}
-
-pub fn search(pattern: String, threads: usize) -> Result<(Key, usize), Box<dyn Error>>  {
+pub fn search(pattern: String, threads: usize) -> CryptoResult<(Key, usize)> { 
 
   if !base58::is_valid(&pattern) {
-    return Err(Box::new(VanityError::InvalidDigits(pattern)));
+    return Err(Box::new(Error::InvalidBase58Digits(pattern)));
   }
 
   // be realistic: 58^8 > ~1e14
   if pattern.len() > 7 {
-    return Err(Box::new(VanityError::TooLong(pattern)));
+    return Err(Box::new(Error::SearchStringTooLong(pattern)));
   }
   
   openssl::init();
 
   let pair = Arc::new((Mutex::new(false), Condvar::new()));
+  let pattern = Arc::new(pattern);
 
   let mut handles = vec![];
 
@@ -67,7 +47,7 @@ pub fn search(pattern: String, threads: usize) -> Result<(Key, usize), Box<dyn E
   Ok((k, total_tries))
 }
 
-fn worker(vanity: String, pair: Arc<(Mutex<bool>, Condvar)>) -> (Option<Key>, usize) {
+fn worker(pattern: Arc<String>, pair: Arc<(Mutex<bool>, Condvar)>) -> (Option<Key>, usize) {
 
   let &(ref lock, ref cvar) = &*pair;
 
@@ -95,9 +75,9 @@ fn worker(vanity: String, pair: Arc<(Mutex<bool>, Condvar)>) -> (Option<Key>, us
     let bytes = key.compressed_public_key().unwrap();
 
     let addr = address::p2pkh(&bytes);
-    let cmp = &addr[1..vanity.len()+1];
+    let cmp = &addr[1..pattern.len()+1];
     i += 1;
-    if vanity == cmp {
+    if *pattern == cmp {
       *lock.lock().unwrap() = true;
       cvar.notify_all();
       return (Some(key), i);
@@ -119,7 +99,6 @@ mod tests {
     let (k, _) = search("BB".to_string(), 4).unwrap();
     let a = address::p2pkh(&k.compressed_public_key().unwrap());
     assert_eq!(&a[..3], "1BB");
-
   }
 
   #[test]

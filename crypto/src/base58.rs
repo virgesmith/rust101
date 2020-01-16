@@ -1,3 +1,7 @@
+
+use crate::CryptoResult;
+use crate::error::Error;
+
 use openssl::bn::{BigNum,BigNumContext};
 
 pub const DIGITS_BTC: &'static str = 
@@ -5,14 +9,13 @@ pub const DIGITS_BTC: &'static str =
 
 
 pub fn is_valid(digits: &str) -> bool {
-  // TODO make static?
+  // TODO make (lazy) static?
   let lookup = base58_lookup(DIGITS_BTC);
 
   for c in digits.chars() {
     let v = lookup[c as usize];
     // check for invalid chars
     if v == 255u8 {
-      //return Err("invalid character in base58".to_string());
       return false;
     }
   }
@@ -61,11 +64,11 @@ fn base58_lookup(digits: &str) -> [u8; 256] {
 }
 
 #[allow(dead_code)]
-pub fn to_bytes(s: &str) -> Result<Vec<u8>, String> {
+pub fn to_bytes(s: &str) -> CryptoResult<Vec<u8>> {
 
   // check for invalid chars
   if !is_valid(s) {
-    return Err("invalid character in base58".to_string());
+    return Err(Box::new(Error::InvalidBase58Digits(s.to_string())));
   }
 
   let base = 58; 
