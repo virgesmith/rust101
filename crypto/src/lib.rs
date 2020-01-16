@@ -8,4 +8,4 @@ pub mod key;
 pub mod vanity;
 pub mod error;
 
-type CryptoResult<T> = Result<T, Box<dyn std::error::Error>>;
+pub type CryptoResult<T> = Result<T, Box<dyn std::error::Error>>;
