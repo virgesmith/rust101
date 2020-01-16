@@ -1,13 +1,9 @@
 
 use crypto::base58;
 use crypto::address;
-use crypto::key::Key;
-
-use rand::gen::*;
+use crypto::vanity::search;
 
 use std::env;
-use std::thread;
-use std::sync::{Arc, Mutex, Condvar};
 use std::error::Error;
 
 
@@ -21,16 +17,16 @@ fn main() -> Result<(), Box<dyn Error>> {
   } 
 
   // assumed P2PKH prefix 1 (for consistency with C++ impl)
-  let vanity = &args[1];
+  let search_word = &args[1];
 
-  if !base58::is_valid(vanity) {
-    println!("{} is not a valid base 58 number (using the BTC alphabet)", vanity);
+  if !base58::is_valid(search_word) {
+    println!("{} is not a valid base 58 number (using the BTC alphabet)", search_word);
     std::process::exit(1);
   }
 
   // be realistic: 58^8 > ~1e14
-  if vanity.len() > 7 {
-    println!("{} is too long to realistically find a matching address", vanity);
+  if search_word.len() > 7 {
+    println!("{} is too long to realistically find a matching address", search_word);
     std::process::exit(1);
   }
 
@@ -45,81 +41,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     1 
   } as usize;
 
-  openssl::init();
-
-  println!("finding key for BTC P2PKH address starting with 1{} using {} threads...", vanity, threads);
+  println!("finding key for BTC P2PKH address starting with 1{} using {} threads...", search_word, threads);
 
   let start = std::time::SystemTime::now();
 
-  let pair = Arc::new((Mutex::new(false), Condvar::new()));
+  // TODO sort out lifetime of search_word
+  let (k, n) = search(search_word.to_string(), threads)?;
+  println!("Found key {}", hex::encode(&k.private_key()?)); 
+  println!("ADDR: {}", address::p2pkh(&k.compressed_public_key()?));
+  println!("WIF: {}", address::wif(&k.private_key()?));
 
-  // spawn threads here
-  let mut handles = vec![];
-
-  for _ in 0..threads {
-    let p = pair.clone();
-    let v = vanity.clone();
-    handles.push( thread::spawn(move || { worker(v, p) }));
-  }
-
-  let mut total_tries = 0;
-  for (i, e) in handles.into_iter().enumerate() {
-    let result = e.join().unwrap();
-    total_tries += result.1;
-    match result.0 {
-      Some(r) => { 
-        println!("thread {} found key {}", i, hex::encode(&r.private_key()?)); 
-        println!("ADDR: {}", address::p2pkh(&r.compressed_public_key()?));
-        println!("WIF: {}", address::wif(&r.private_key()?));
-      },
-      // The thread didnt find the address 
-      None => continue,
-    }
-  }
   let elapsed = start.elapsed().unwrap().as_millis() as f64 / 1000.0;
-  println!("{} attempts in {} seconds", total_tries, elapsed);
+  println!("{} attempts in {} seconds", n, elapsed);
 
-  println!("Rate {}/thread/sec", total_tries as f64 / threads as f64 / elapsed);
+  println!("Rate {}/thread/sec", n as f64 / threads as f64 / elapsed);
 
   Ok(())
 }
 
-fn worker(vanity: String, pair: Arc<(Mutex<bool>, Condvar)>) -> (Option<Key>, usize) {
-
-  let &(ref lock, ref cvar) = &*pair;
-
-  let mut i = 0;
-  let mut rng = pseudo::LCG::new(None);
-
-  loop {
-
-    //let prv = rng.next_n(32/4).into_iter().fold(Vec::<u8>::new(), |acc, v32| acc.append(v32.to_be_bytes()) );
-    let prv32 = rng.next_n(32/4);
-    let mut prv8 = [0u8;32];
-    for i in 0..prv32.len() {
-      let block = prv32[i].to_be_bytes();
-      prv8[i*4] = block[0];
-      prv8[i*4+1] = block[1];
-      prv8[i*4+2] = block[2];
-      prv8[i*4+3] = block[3];      
-      //prv8.append(&mut val32.to_be_bytes().to_vec());
-    }
-    let key = Key::from_private_bytes(&prv8).unwrap();
-
-    // this is no slower than using an external RNG to generate the private key
-    //let key = Key::new().unwrap();
-    let bytes = key.compressed_public_key().unwrap();
-
-    let addr = address::p2pkh(&bytes);
-    let cmp = &addr[1..vanity.len()+1];
-    i += 1;
-    if vanity == cmp {
-      *lock.lock().unwrap() = true;
-      cvar.notify_all();
-      return (Some(key), i);
-    }
-    if *lock.lock().unwrap() {
-      return (None, i);
-    }
-  }
-}
