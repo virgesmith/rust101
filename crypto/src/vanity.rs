@@ -1,15 +1,46 @@
 
 use crate::key::Key;
 use crate::address;
+use crate::base58;
 
 use rand::gen::*;
 
-// use std::env;
 use std::thread;
 use std::sync::{Arc, Mutex, Condvar};
+use std::fmt;
 use std::error::Error;
 
+#[derive(Debug, Clone)]
+enum VanityError {
+  InvalidDigits(String),
+  TooLong(String)
+}
+
+impl fmt::Display for VanityError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match *self {
+      VanityError::InvalidDigits(ref s) => write!(f, "invalid search string: {}", s),
+      VanityError::TooLong(ref s) => write!(f, "search string is too long: {}", s),
+    }
+  }
+}
+
+impl Error for VanityError {
+  fn source(&self) -> Option<&(dyn Error + 'static)> {
+    None
+  }
+}
+
 pub fn search(pattern: String, threads: usize) -> Result<(Key, usize), Box<dyn Error>>  {
+
+  if !base58::is_valid(&pattern) {
+    return Err(Box::new(VanityError::InvalidDigits(pattern)));
+  }
+
+  // be realistic: 58^8 > ~1e14
+  if pattern.len() > 7 {
+    return Err(Box::new(VanityError::TooLong(pattern)));
+  }
   
   openssl::init();
 
@@ -73,6 +104,34 @@ fn worker(vanity: String, pair: Arc<(Mutex<bool>, Condvar)>) -> (Option<Key>, us
     }
     if *lock.lock().unwrap() {
       return (None, i);
+    }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  #[test]
+  fn test1() {
+    let (k, _) = search("A".to_string(), 1).unwrap();
+    let a = address::p2pkh(&k.compressed_public_key().unwrap());
+    assert_eq!(&a[..2], "1A");
+    let (k, _) = search("BB".to_string(), 4).unwrap();
+    let a = address::p2pkh(&k.compressed_public_key().unwrap());
+    assert_eq!(&a[..3], "1BB");
+
+  }
+
+  #[test]
+  fn test_failures() {
+    // invalid
+    match search("0".to_string(), 1) {
+      Ok(_) => assert!(false, "invalid base 58 digit should fail"),
+      Err(e) => assert_eq!(e.to_string(), "invalid search string: 0")
+    }
+    match search("AAAAAAAAAAAA".to_string(), 1) {
+      Ok(_) => assert!(false, "invalid base 58 digit should fail"),
+      Err(e) => assert_eq!(e.to_string(), "search string is too long: AAAAAAAAAAAA")
     }
   }
 }

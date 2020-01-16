@@ -19,17 +19,6 @@ fn main() -> Result<(), Box<dyn Error>> {
   // assumed P2PKH prefix 1 (for consistency with C++ impl)
   let search_word = &args[1];
 
-  if !base58::is_valid(search_word) {
-    println!("{} is not a valid base 58 number (using the BTC alphabet)", search_word);
-    std::process::exit(1);
-  }
-
-  // be realistic: 58^8 > ~1e14
-  if search_word.len() > 7 {
-    println!("{} is too long to realistically find a matching address", search_word);
-    std::process::exit(1);
-  }
-
   // Use u8 to ensure threads <= 256, defaulting to 1
   let threads = if args.len() == 3 { 
     match args[2].parse::<u8>() {
