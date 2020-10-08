@@ -1,7 +1,7 @@
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use pyo3::exceptions;
+use pyo3::exceptions::{PyException, PyValueError};
 
 use crypto::hash;
 use crypto::key::{Key, PubKey};
@@ -30,8 +30,8 @@ fn hash256(filename: String) -> PyResult<String> {
 fn wrap_result<T>(res: CryptoResult<T>) -> PyResult<T> {
   match res {
     Ok(r) => Ok(r),
-    // TODO how do we extract useful info (safely into a static string)?
-    Err(_) => Err(PyErr::new::<exceptions::Exception, _>("unknown module error")) 
+    // TODO to map errors to python exception types?
+    Err(e) => Err(PyException::new_err(format!("{}", e))) 
   }
 }
 
@@ -131,7 +131,7 @@ fn verify_impl(msg_filename: String, pubkey_hex: String, sig_hex: String) -> Cry
 fn vanity(s: String, nth: usize) -> PyResult<HashMap<String, String>> {
   // Use u8 to ensure threads <= 256, defaulting to 1
   if nth < 1 || nth > 256 {
-    return Err(PyErr::new::<exceptions::ValueError, _>("invalid number of thread requested (must be 1-256)"));
+    return Err(PyValueError::new_err(format!("invalid number of threads requested {} (must be 1-256)", nth)));
   }
 
   wrap_result(vanity_impl(s, nth))
@@ -141,10 +141,10 @@ fn vanity_impl(s: String, nth: usize) -> CryptoResult<HashMap<String, String>> {
 
   //println!("finding key for BTC P2PKH address starting with 1{} using {} threads...", vanity, threads);
 
-  //let start = std::time::SystemTime::now();
+  let start = std::time::SystemTime::now();
   let (k, tries) = vanity::search(s, nth)?;
 
-  //let elapsed = start.elapsed().unwrap().as_millis() as f64 / 1000.0;
+  let elapsed = start.elapsed().unwrap().as_millis() as f64 / 1000.0;
   //println!("{} attempts in {} seconds", total_tries, elapsed);
 
   let mut m = HashMap::new();
@@ -152,9 +152,11 @@ fn vanity_impl(s: String, nth: usize) -> CryptoResult<HashMap<String, String>> {
   m.insert("p2pkh".to_string(), address::p2pkh(&k.compressed_public_key()?));
   m.insert("wif".to_string(), address::wif(&k.private_key()?));
   m.insert("tries".to_string(), tries.to_string());
+  m.insert("time(s)".to_string(), elapsed.to_string());
 
   Ok(m)
 }
+
 
 #[pymodule]
 fn pycrypto(_: Python, m: &PyModule) -> PyResult<()> {
@@ -165,14 +167,9 @@ fn pycrypto(_: Python, m: &PyModule) -> PyResult<()> {
   m.add_wrapped(wrap_pyfunction!(sign))?;
   m.add_wrapped(wrap_pyfunction!(verify))?;
   m.add_wrapped(wrap_pyfunction!(vanity))?;
+
   Ok(())
 }
 
+// tests use pytest
 
-// #[cfg(test)]
-// mod tests {
-//   #[test]
-//   fn it_works() {
-//     assert_eq!(2 + 2, 4);
-//   }
-// }

@@ -109,7 +109,7 @@ mod tests {
       Err(e) => assert_eq!(e.to_string(), "invalid search string: 0")
     }
     match search("AAAAAAAAAAAA".to_string(), 1) {
-      Ok(_) => assert!(false, "invalid base 58 digit should fail"),
+      Ok(_) => assert!(false, "too long search string should fail"),
       Err(e) => assert_eq!(e.to_string(), "search string is too long: AAAAAAAAAAAA")
     }
   }

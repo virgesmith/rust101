@@ -21,4 +21,4 @@ so/
 cw/
 
 node_modules/
-.venv/
+.venv*/
