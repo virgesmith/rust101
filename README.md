@@ -13,6 +13,7 @@ I've a C++ background (high-performance numerical computing) and Rust sounded in
 - none of the code here is, or is intended to be production quality.
 
 ### Resources
+
 - https://doc.rust-lang.org/
 
 |*Contents*
@@ -48,16 +49,21 @@ where
   }
 }
 ```
+
 but a signature like this:
+
 ```
   fn div(lhs: T, &self) -> Cplx<T> {
 ```
+
 which doesn't seem to be allowed, so
+
 ```
 let i = Cplx<f64>::new(0.0, 1.0);
 let z = 2.0 / i;
             ^ no implementation for `{float} / Cplx<f64>`
 ```
+
 as a workaround I just implemented a `recip()` function:
 
 ```rust
@@ -74,7 +80,9 @@ If you think the (signed) integer absolute value function `int abs(int)` is safe
 The way two's complement works means there's one more negative integer than positive: with 8 bits that means the range of values is -128..127. So `abs(-128)` return value is outside its domain.
 
 ### How would you solve this in C++?
+
 Adding a runtime check
+
 ```cpp
 int myabs(int x)
 {
@@ -83,6 +91,7 @@ int myabs(int x)
   return x < 0 ? -x : x;
 }
 ```
+
 will kill performance - this function might get called *a lot*. You could tell the CPU/signal handler (structured exception handler in Windows terms) to raise an integer overflow exception, but beware: any 3rd party library you depend on might not function as advertised if you change these settings, and, you've no guarantee that any code that *calls* your code hasn't changed the settings itself, and/or might do so while your library is loaded. In practice (my experience at least) is you trap the exception at hardware level when you're running your *comprehensive set of regression tests*, but in production you just hope for the best...
 
 Likewise, plenty of floating point operations can return numbers outside the real number domain (never mind outside the IEE754 specification), such as `ln(0.0)` and `sqrt(-1.0)`. Whilst the IEEE754 spec provides for infinity (and NaN), unless you implement performance-crippling runtime checks, these values will just permetate through your computations corrupting the results.
@@ -110,6 +119,7 @@ fn myabs(x : i8) -> Result<i8, String> {
   }
 }
 ```
+
 Similarly, if we wanted to permit our transcendental functions to operate on the entire real number line, we would have to allow for infinite (IEEE754 covers this already) and complex (IEEE754 uses NaN for this) results:
 
 ```rust
@@ -120,7 +130,9 @@ enum Number<T> where T: Into<f64> {
   Inf(bool) // sign bit, true means negative
 }
 ```
+
 where
+
 - `T` must be castable to a double
 - infinity is a special case, like IEEE754 there are positive and negative variants
 
@@ -134,7 +146,9 @@ fn sqrt(x: f64) -> Number<f64> {
   }
 }
 ```
-and for logarithm, the result* is negative infinity for zero, complex for negative input, otherwise real.
+
+and for logarithms, the result* is negative infinity for zero, complex for negative input, otherwise real.
+
 ```rust
 fn ln(x: f64) -> Number<f64> {
   match x {
@@ -145,17 +159,20 @@ fn ln(x: f64) -> Number<f64> {
 }
 
 ```
+
 * i = (2n+1).pi for all integer n, we just take the n=0 root.
 
 ## Rand
 
 A random number library. More reinventing the wheel to learn rust, specifically:
+
 - package structure and tests, documentation, and doctests
 - how to integrate with C and C++
 - using traits to define relationships (or lack thereof) between types
 - iterators and functional constructs
 
 The following generators are implemented:
+
 - C++11 minstd implementation of an LCG generator
 - 64-bit xor shift generator
 - Mersenne twister (link to C++11 std lib implementation)
@@ -163,6 +180,7 @@ The following generators are implemented:
 - "EntropySource": true(ish) random using /dev/urandom (/dev/random too slow)
 
 Which implement one or more of the traits
+
 - RandomStream: produces vectors of `u32` and `f64`
 - Seeded: requires a seed for initialisation, defaults to current nanoseconds
 - Dimensioned: has inherent dimension (i.e. Sobol)
@@ -171,6 +189,7 @@ Which implement one or more of the traits
 - Resettable: can be reset to initial state (not EntropySource)
 
 and the distributions:
+
 - Discrete uniform
 - Discrete weighted
 - Discrete without-replacement
@@ -182,14 +201,19 @@ and the distributions:
 - Exponential (using inverse CDF)
 
 ...have different "trait bounds", the point being to structure the code so that it's not possible to combine invalid combinations of random streams and distribution algorithms, thus:
+
 ```rust
 let mut dist = Normal::<InverseCumulative<Sobol>>::new(0.0, 1.0, Sobol::new(1));
 ```
+
 is fine, whereas
+
 ```rust
 let mut dist = Normal::<Polar<Sobol>>::new(0.0, 1.0, Sobol::new(1));
 ```
+
 gives the (admittedly not entirely obvious) error
+
 ```
 error[E0599]: no function or associated item named `new` found for type `dist::continuous::Normal<dist::normal::Polar<gen::quasi::Sobol>>` in the current scope
    --> src/dist/continuous.rs:210:44
@@ -206,6 +230,7 @@ error[E0599]: no function or associated item named `new` found for type `dist::c
             `gen::quasi::Sobol : gen::Dimensionless`
             `gen::quasi::Sobol : gen::Rejectable`
 ```
+
 the point being that the polar algorithm is a rejection algorithm and Sobol sequences require all variates to be used to preserve their statistical properties. Thus, `Sobol` doesn't implement the `Rejectable` trait which is made a requirement for `Polar`'s template parameter.
 
 ## Rectangle

@@ -10,9 +10,9 @@ pub fn pdf(x: f64, l: f64, h: f64) -> f64 {
   }
 }
 
-// inverse pdf is not well defined: 
+// inverse pdf is not well defined:
 //   0 -> any value <l or >h
-//   1/(h-l) -> any value in [l,h]  
+//   1/(h-l) -> any value in [l,h]
 
 pub fn cdf(x: f64, l: f64, h: f64) -> f64 {
   assert!(l < h);
@@ -25,7 +25,7 @@ pub fn cdf(x: f64, l: f64, h: f64) -> f64 {
 
 pub fn inv_cdf(f: f64, l: f64, h: f64) -> f64 {
   assert!(l < h);
-  assert!(f >= 0.0 && f <= 1.0);
+  assert!((0.0..=1.0).contains(&f));
   l + h * f
 }
 

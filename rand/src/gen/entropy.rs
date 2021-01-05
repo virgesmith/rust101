@@ -3,18 +3,24 @@ use std::fs::File;
 use std::io::BufReader;
 extern crate byteorder;
 
-pub struct EntropySource 
-{ 
+pub struct EntropySource
+{
   buf: BufReader<File>
 }
 
 impl EntropySource {
-  pub fn new() -> EntropySource {
+  pub fn new() -> Self {
     EntropySource{ buf: BufReader::new(File::open("/dev/urandom").unwrap()) }
   }
 }
 
-/// General traits of random 
+impl Default for EntropySource {
+  fn default() -> Self {
+    EntropySource::new()
+  }
+}
+
+/// General traits of random
 impl RandomStream for EntropySource {
   fn next_n(&mut self, n: usize) -> Vec<u32> {
     use byteorder::{ReadBytesExt, NativeEndian};
@@ -28,7 +34,7 @@ impl RandomStream for EntropySource {
   }
 }
 
-impl Rejectable for EntropySource { } 
+impl Rejectable for EntropySource { }
 
 #[cfg(test)]
 mod test {

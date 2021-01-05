@@ -1,5 +1,5 @@
 
-// Ziggurat algorithms for exponential distribution 
+// Ziggurat algorithms for exponential distribution
 use crate::gen::RandomStream;
 use crate::gen::Rejectable;
 use crate::gen::Dimensionless;
@@ -13,7 +13,7 @@ pub struct InverseCumulative<R> {
 
 impl<R: RandomStream + Dimensionless + Rejectable> InverseCumulative<R> {
   pub fn new(rng: R) -> InverseCumulative<R> {
-    InverseCumulative{rng: rng}
+    InverseCumulative{rng}
   }
 
   fn get_impl(&mut self) -> f64 {

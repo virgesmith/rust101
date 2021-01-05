@@ -26,20 +26,20 @@ pub struct WithoutReplacement<R, T> {
 
 impl<R: RandomStream, T: Num + Clone + Copy> Discrete<R, T> {
   pub fn new(a: &[T], rng: R) -> Discrete<R, T> {
-    assert!(a.len() > 0);
-    Discrete{v:a.to_vec(), rng: rng}
+    assert!(!a.is_empty());
+    Discrete{v:a.to_vec(), rng}
   }
 }
 
 impl<R: RandomStream, T: Num + Clone + Copy> Dist<T> for Discrete<R, T> {
   // fn sample_1<R: RandomStream + Dimensionless>(&mut self, rng: &mut R) -> T {
-  //   let i = rng.next_1() as usize % self.v.len(); 
+  //   let i = rng.next_1() as usize % self.v.len();
   //   self.v[i] // cannot move out of borrowed context without Copy trait bound
-  // } 
+  // }
 
   fn sample_n(&mut self, n: usize) -> Vec<T> {
     self.rng.next_n(n).iter().map(|&r| self.v[r as usize % self.v.len()]).collect()
-  } 
+  }
 }
 
 // bisect to find lowest i where v[i] <= x
@@ -53,20 +53,20 @@ fn bisect<T: PartialOrd>(x: T, v: &[T]) -> usize {
   //   // return h when l,h adjacent
   //   if h - l <= 1 {
   //     return h;
-  //   } 
+  //   }
   // }
   // sequential version: return i where v[i] <= x < v[i+1]
-  for i in 0..v.len() {
-    if x <= v[i] {
+  for (i, v) in v.iter().enumerate() {
+    if &x <= v {
       return i;
-    } 
+    }
   }
   panic!("DiscreteWeighted sample failure, is Generator working correctly?");
 }
 
 impl<R: RandomStream, T: Num + Clone + Copy> DiscreteWeighted<R, T> {
   pub fn new(a: &[(T,f64)], rng: R) -> DiscreteWeighted<R, T> {
-    assert!(a.len() > 0);
+    assert!(!a.is_empty());
     let mut s = 0.0;
     // check probs in [0,1] (dummy sum)
     a.iter().fold(0.0, |_, p| { assert!(p.1 >= 0.0 && p.1 <= 1.0); p.1 } );
@@ -74,28 +74,28 @@ impl<R: RandomStream, T: Num + Clone + Copy> DiscreteWeighted<R, T> {
     // check probabilities sum to unity
     assert!(p.last().unwrap().abs() - 1.0 < std::f64::EPSILON);
     DiscreteWeighted{ v: a.iter().fold(Vec::with_capacity(a.len()), |mut acc, p| { acc.push(p.0); acc }),
-              p: p, rng: rng }
+              p, rng }
   }
 
   fn sample_1(&mut self, r: f64) -> T {
     // first element in p > r
     self.v[bisect(r, &self.p)]
-  } 
+  }
 
 }
 
 impl<R: RandomStream, T: Num + Clone + Copy> Dist<T> for DiscreteWeighted<R, T> {
   fn sample_n(&mut self, n: usize) -> Vec<T> {
     self.rng.uniforms01(n).iter().map(|&r| self.sample_1(r)).collect()
-  } 
+  }
 }
 
 impl<R: RandomStream, T: Num + Clone + Copy> WithoutReplacement<R, T> {
   pub fn new(state_occs: &[(T,u32)], rng: R) -> WithoutReplacement<R, T> {
-    assert!(state_occs.len() > 0);
-    WithoutReplacement{ v: state_occs.iter().map(|&(v,_)| v).collect(), 
-                        f: state_occs.iter().map(|&(_,f)| f).collect(), 
-                        rng: rng }
+    assert!(!state_occs.is_empty());
+    WithoutReplacement{ v: state_occs.iter().map(|&(v,_)| v).collect(),
+                        f: state_occs.iter().map(|&(_,f)| f).collect(),
+                        rng }
   }
 
   fn sample_1(&mut self, r: u32) -> T
@@ -107,11 +107,11 @@ impl<R: RandomStream, T: Num + Clone + Copy> WithoutReplacement<R, T> {
     // let i = bisect(r, &self.f);
     // self.f[i] -= 1;
     // self.v[i]
-    for i in 0..cumul.len() {
-      if cumul[i] > r {
+    for (i, c) in cumul.iter().enumerate() {
+      if c > &r {
         self.f[i] -= 1;
         return self.v[i];
-      } 
+      }
     }
     // TODO better way?
     panic!("WithoutReplacement sample failure, is Generator working correctly?");
@@ -146,10 +146,10 @@ mod test {
     for i in 0..TRIALS {
       h[r[i] as usize - 1] += 1;
     }
-    let lo = (TRIALS as f64 / 6.0 - 2.0 * (TRIALS as f64).sqrt()) as i32; 
-    let hi = (TRIALS as f64 / 6.0 + 2.0 * (TRIALS as f64).sqrt()) as i32; 
+    let lo = (TRIALS as f64 / 6.0 - 2.0 * (TRIALS as f64).sqrt()) as i32;
+    let hi = (TRIALS as f64 / 6.0 + 2.0 * (TRIALS as f64).sqrt()) as i32;
     for n in h {
-      assert!(n > lo && n < hi);      
+      assert!(n > lo && n < hi);
     }
   }
 
@@ -167,10 +167,10 @@ mod test {
     for _ in 0..TRIALS {
       h[die.sample_n(1)[0] as usize-1] += 1;
     }
-    let lo = (TRIALS as f64 / 6.0 - 1.0 * (TRIALS as f64).sqrt()) as i32; 
-    let hi = (TRIALS as f64 / 6.0 + 1.0 * (TRIALS as f64).sqrt()) as i32; 
+    let lo = (TRIALS as f64 / 6.0 - 1.0 * (TRIALS as f64).sqrt()) as i32;
+    let hi = (TRIALS as f64 / 6.0 + 1.0 * (TRIALS as f64).sqrt()) as i32;
     for n in h {
-      assert!(n > lo && n < hi);      
+      assert!(n > lo && n < hi);
     }
   }
 
@@ -194,10 +194,10 @@ mod test {
       h[fair_die.sample_n(1)[0] as usize-1] += 1;
     }
     println!("{:?}", h);
-    let lo = (TRIALS as f64 / 6.0 - 1.0 * (TRIALS as f64).sqrt()) as i32; 
-    let hi = (TRIALS as f64 / 6.0 + 1.0 * (TRIALS as f64).sqrt()) as i32; 
+    let lo = (TRIALS as f64 / 6.0 - 1.0 * (TRIALS as f64).sqrt()) as i32;
+    let hi = (TRIALS as f64 / 6.0 + 1.0 * (TRIALS as f64).sqrt()) as i32;
     for n in h {
-      assert!(n > lo && n < hi);      
+      assert!(n > lo && n < hi);
     }
   }
 
@@ -208,10 +208,10 @@ mod test {
     for _ in 0..TRIALS {
       h[fair_die.sample_n(1)[0] as usize-1] += 1;
     }
-    let lo = (TRIALS as f64 / 10.0 - 1.0 * (TRIALS as f64).sqrt()) as i32; 
-    let hi = (TRIALS as f64 / 10.0 + 1.0 * (TRIALS as f64).sqrt()) as i32; 
+    let lo = (TRIALS as f64 / 10.0 - 1.0 * (TRIALS as f64).sqrt()) as i32;
+    let hi = (TRIALS as f64 / 10.0 + 1.0 * (TRIALS as f64).sqrt()) as i32;
     for i in 1..h.len() {
-      assert!(h[i] > lo && h[i] < hi);      
+      assert!(h[i] > lo && h[i] < hi);
     }
   }
 
@@ -259,13 +259,13 @@ mod test {
 
   #[test]
   fn test_without_replacement_sobol() {
-    // state i has occupacy i 
+    // state i has occupacy i
     let state_occs = (1..=10).map(|i| (i,i as u32)).collect::<Vec<(i32, u32)>>();
     // one sample from 55-dimensional sobol should take the entire population
     let mut dist = WithoutReplacement::new(&state_occs, Sobol::new(55));
     let res = dist.sample_n(55);
     // reconstruct the dist
-    let hist = res.iter().fold(vec![0u32;10], 
+    let hist = res.iter().fold(vec![0u32;10],
                                 |mut acc, &v| { let i = (v-1) as usize; acc[i] += 1; acc })
                           .into_iter().collect::<Vec<u32>>();
     println!("{:?}", hist);

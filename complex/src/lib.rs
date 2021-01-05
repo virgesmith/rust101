@@ -20,7 +20,7 @@ where
   }
 
   pub fn new(r: T, i: T) -> Cplx<T> {
-    Cplx { r: r, i: i }
+    Cplx { r, i }
   }
 
   pub fn from_normarg(r: T, theta: T) -> Cplx<T> {

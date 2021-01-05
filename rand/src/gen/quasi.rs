@@ -20,9 +20,9 @@ extern {
   // int nlopt_sobol_next(SobolData* s, uint32_t *x)
   fn nlopt_sobol_next(pimpl: SobolImpl, dest: &u32) -> i32;
   // void nlopt_sobol_skip(SobolData* s, uint32_t n, uint32_t *x)
-  fn nlopt_sobol_skip(pimpl: SobolImpl, skips: u32, dest: &u32) -> ();
+  fn nlopt_sobol_skip(pimpl: SobolImpl, skips: u32, dest: &u32);
   // void nlopt_sobol_destroy(SobolData* s)
-  fn nlopt_sobol_destroy(pimpl: SobolImpl) -> ();
+  fn nlopt_sobol_destroy(pimpl: SobolImpl);
   // inline uint32_t sobol_maxdim() { return MAXDIM; }
   fn sobol_maxdim() -> u32;
 }
@@ -36,7 +36,7 @@ impl Drop for Sobol {
 impl Sobol {
   pub fn new(dim: u32) -> Sobol {
     assert!(dim > 0 && dim <= unsafe {sobol_maxdim()});
-    let this = Sobol{dim: dim, cache: vec![0; dim as usize], pimpl: unsafe { nlopt_sobol_create(dim) } };
+    let this = Sobol{dim, cache: vec![0; dim as usize], pimpl: unsafe { nlopt_sobol_create(dim) } };
     // initialise cache
     unsafe { nlopt_sobol_next(this.pimpl, &this.cache[0]); }
     this
@@ -64,7 +64,7 @@ impl RandomStream for Sobol {
   }
 
   fn uniforms01(&mut self, n: usize) -> Vec<f64> {
-    const SCALE: f64 = 1.0 / 4294967296.0; 
+    const SCALE: f64 = 1.0 / 4294967296.0;
     self.next_n(n).iter().map(|&r| r as f64 * SCALE).collect()
   }
 
@@ -72,8 +72,8 @@ impl RandomStream for Sobol {
 
 impl Resettable for Sobol {
   fn reset(&mut self) -> &mut Self {
-    unsafe { 
-      nlopt_sobol_destroy(self.pimpl); 
+    unsafe {
+      nlopt_sobol_destroy(self.pimpl);
       self.pimpl = nlopt_sobol_create(self.dim);
       // refresh cache
       nlopt_sobol_next(self.pimpl, &self.cache[0]);
@@ -115,7 +115,7 @@ mod test {
   #[should_panic]
   fn test_sobol_failures() {
     Sobol::new(0);
-  }  
+  }
 
   #[test]
   #[should_panic]

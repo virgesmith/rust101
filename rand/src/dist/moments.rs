@@ -4,17 +4,17 @@ pub struct Moments {
   mean: f64,
   variance: f64,
   skew: f64,
-  kurtosis: f64  
+  kurtosis: f64
 }
 
 impl Moments {
   pub fn new(v: &[f64]) -> Moments {
     let n = v.len();
     let mean = v.iter().sum::<f64>() / n as f64;
-    let var = v.iter().fold(0.0, |acc, &x| acc + (x - mean).powi(2) ) / (n as f64);
-    let skew = v.iter().fold(0.0, |acc, &x| acc + (x - mean).powi(3) ) / (n as f64 * var.sqrt());
-    let kurt = v.iter().fold(0.0, |acc, &x| acc + (x - mean).powi(4) ) / (n as f64 * var.sqrt());
-    Moments{ mean: mean, variance: var, skew: skew, kurtosis: kurt }
+    let variance = v.iter().fold(0.0, |acc, &x| acc + (x - mean).powi(2) ) / (n as f64);
+    let skew = v.iter().fold(0.0, |acc, &x| acc + (x - mean).powi(3) ) / (n as f64 * variance.sqrt());
+    let kurtosis = v.iter().fold(0.0, |acc, &x| acc + (x - mean).powi(4) ) / (n as f64 * variance.sqrt());
+    Moments{ mean, variance, skew, kurtosis }
   }
 }
 

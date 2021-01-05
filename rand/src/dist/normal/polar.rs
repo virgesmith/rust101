@@ -1,4 +1,4 @@
-// Algorithms to transform uniform variates to normal 
+// Algorithms to transform uniform variates to normal
 use crate::gen::RandomStream;
 use crate::gen::Rejectable;
 use crate::gen::Dimensionless;
@@ -13,7 +13,7 @@ pub struct Polar<R> {
 
 impl<R: RandomStream + Dimensionless + Rejectable> Polar<R> {
   pub fn new(rng: R) -> Polar<R> {
-    Polar{rng: rng, is_cached: false, cached_val: std::f64::NAN}
+    Polar{rng, is_cached: false, cached_val: std::f64::NAN}
   }
 
   fn get_impl(&mut self) -> f64 {

@@ -1,4 +1,4 @@
-// Algorithms to transform uniform variates to normal 
+// Algorithms to transform uniform variates to normal
 use crate::gen::RandomStream;
 use crate::gen::Rejectable;
 use crate::gen::Dimensionless;
@@ -23,7 +23,7 @@ impl<R: RandomStream + Dimensionless + Rejectable> Ziggurat<R> {
 
     let mut x = [0.0; NSTRIPS+1];
     let mut r = [0.0; NSTRIPS];
-    
+
     let f = (0.5 * X1 * X1).exp();
     x[0] = V / f;
     x[1] = X1;
@@ -35,7 +35,7 @@ impl<R: RandomStream + Dimensionless + Rejectable> Ziggurat<R> {
       r[i] = x[i+1] / x[i];
     }
 
-    Ziggurat{rng: rng, x: x, r: r}
+    Ziggurat{rng, x, r}
   }
 
   // #define ZIGNOR_C 128                   /* number of blocks */
@@ -48,7 +48,7 @@ impl<R: RandomStream + Dimensionless + Rejectable> Ziggurat<R> {
 
   // static void zigNorInit(int iC, double dR, double dV)
   // {
-  //   int i;  
+  //   int i;
   //   double f;
   //   f = exp(-0.5 * dR * dR);
   //   s_adZigX[0] = dV / f; /* [0] is bottom block: V / f(R) */
@@ -66,12 +66,12 @@ impl<R: RandomStream + Dimensionless + Rejectable> Ziggurat<R> {
   //{
   //  double x, y;
   //  do
-  //   {   
+  //   {
   //     x = log(DRanU()) / dMin;
   //     y = log(DRanU());
   //   } while (-2 * y < x * x);
   //   return iNegative ? x - dMin : dMin - x;
-  // } 
+  // }
 
   // TODO remove dmin (=x[1])
   fn tail(&mut self, dmin: f64, neg: bool) -> f64 {
@@ -82,9 +82,7 @@ impl<R: RandomStream + Dimensionless + Rejectable> Ziggurat<R> {
       y = self.rng.uniform01().ln();
       if -2.0 * y >= x * x { break };
     }
-    // let mult = if neg { 1.0 } else { -1.0 };
-    // return (dmin - x) * mult;
-    if neg { return x - dmin; } else { return dmin - x; }
+    if neg { x - dmin } else { dmin - x }
   }
 
   //double  DRanNormalZig(void){

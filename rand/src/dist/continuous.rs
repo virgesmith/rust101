@@ -9,13 +9,13 @@ use crate::dist::Dist;
 pub struct Uniform<R> {
   l: f64,
   s: f64,
-  rng: R 
+  rng: R
 }
 
 #[derive(Debug)]
 pub struct Normal<T> {
   mu: f64,
-  sigma: f64, 
+  sigma: f64,
   transform: T
 }
 
@@ -28,18 +28,18 @@ pub struct Exponential<R> {
 impl<R: RandomStream> Uniform<R> {
   pub fn new(l: f64, h: f64, rng: R) -> Uniform<R> {
     assert!(h > l);
-    Uniform{l: l, s: h-l, rng: rng}
+    Uniform{l, s: h-l, rng}
   }
 }
 
 impl<R: RandomStream> Dist<f64> for Uniform<R> {
   // fn sample_1(&mut self) -> f64 {
-  //   self.rng.uniform01() * self.s + self.l 
-  // } 
+  //   self.rng.uniform01() * self.s + self.l
+  // }
 
   fn sample_n(&mut self, n: usize) -> Vec<f64> {
     self.rng.uniforms01(n).iter().map(|&x| self.l + self.s * x).collect()
-  } 
+  }
 }
 
 impl<R: RandomStream> Normal<InverseCumulative<R>> {
@@ -50,7 +50,7 @@ impl<R: RandomStream> Normal<InverseCumulative<R>> {
 
   pub fn sample_1(&mut self) -> f64 {
     self.mu + self.sigma * self.transform.get_n(1)[0]
-  } 
+  }
 }
 
 impl<R: RandomStream> Dist<f64> for Normal<InverseCumulative<R>> {
@@ -62,7 +62,7 @@ impl<R: RandomStream> Dist<f64> for Normal<InverseCumulative<R>> {
   ///
   /// # Example
   /// ```
-  /// // Sample 100 normal variates with zero mean and unit variance 
+  /// // Sample 100 normal variates with zero mean and unit variance
   /// // using Mersenne Twister as the underlying random number generator
   /// // with Marsaglia's polar transformation to convert to normal
   /// use rand::gen::{*, pseudo::*};
@@ -74,7 +74,7 @@ impl<R: RandomStream> Dist<f64> for Normal<InverseCumulative<R>> {
   /// ```
   fn sample_n(&mut self, n: usize) -> Vec<f64> {
     self.transform.get_n(n).iter().map(|&r| self.mu + self.sigma * r).collect()
-  } 
+  }
 }
 
 impl<R: RandomStream + Dimensionless + Rejectable> Normal<Polar<R>> {
@@ -85,7 +85,7 @@ impl<R: RandomStream + Dimensionless + Rejectable> Normal<Polar<R>> {
 
   // pub fn sample_1(&mut self) -> f64 {
   //   self.mu + self.sigma * self.transform.get_n(1)[0]
-  // } 
+  // }
 }
 
 impl<R: RandomStream + Dimensionless + Rejectable> Dist<f64> for Normal<Polar<R>> {
@@ -97,7 +97,7 @@ impl<R: RandomStream + Dimensionless + Rejectable> Dist<f64> for Normal<Polar<R>
   ///
   /// # Example
   /// ```
-  /// // Sample 100 normal variates with zero mean and unit variance 
+  /// // Sample 100 normal variates with zero mean and unit variance
   /// // using Mersenne Twister as the underlying random number generator
   /// // with Marsaglia's polar transformation to convert to normal
   /// use rand::gen::{*, pseudo::*};
@@ -109,7 +109,7 @@ impl<R: RandomStream + Dimensionless + Rejectable> Dist<f64> for Normal<Polar<R>
   /// ```
   fn sample_n(&mut self, n: usize) -> Vec<f64> {
     self.transform.get_n(n).iter().map(|&r| self.mu + self.sigma * r).collect()
-  } 
+  }
 }
 
 // TODO implement a transform layer (so can add e.g. Ziggurat)
@@ -123,12 +123,12 @@ impl<R: RandomStream> Exponential<R> {
 
 impl<R: RandomStream> Dist<f64> for Exponential<R> {
   // fn sample_1<R: RandomStream + Dimensionless>(&mut self, rng: &mut R) -> f64 {
-  //   -rng.uniform01().ln() / self.lambda 
-  // } 
+  //   -rng.uniform01().ln() / self.lambda
+  // }
 
   fn sample_n(&mut self, n: usize) -> Vec<f64> {
     self.rng.uniforms01(n).iter().map(|&r| -r.ln() / self.lambda).collect()
-  } 
+  }
 }
 
 #[cfg(test)]
@@ -171,7 +171,7 @@ mod test {
   #[test]
   fn test_exponential_xorshift() {
     // test k from 1e-5 to 1e+5
-    for i in -5..6 { 
+    for i in -5..6 {
       let k = 10.0f64.powi(i);
       let mut e = Exponential::new(k, Xorshift64::new(Some(19937)));
       let mu: f64 = e.sample_n(TRIALS).iter().sum::<f64>() / (TRIALS as f64);
@@ -190,11 +190,11 @@ mod test {
   #[test]
   fn test_normal_inversecumulative_xorshift() {
     // test variance from 1e-5 to 1e+5
-    for i in -5..=5 { 
+    for i in -5..=5 {
       let var = 10.0f64.powi(i);
       let mut e = Normal::<InverseCumulative<Xorshift64>>::new(0.0, var, Xorshift64::new(Some(19937)));
       let mu: f64 = e.sample_n(TRIALS).iter().sum::<f64>() / (TRIALS as f64);
-      // mean should be 0.0 +/- 
+      // mean should be 0.0 +/-
       assert!(mu.abs() < (var / (TRIALS as f64)).sqrt());
     }
   }
@@ -202,11 +202,11 @@ mod test {
   #[test]
   fn test_normal_polar_xorshift() {
     // test variance from 1e-5 to 1e+5
-    for i in -5..=5 { 
+    for i in -5..=5 {
       let var = 10.0f64.powi(i);
       let mut e = Normal::<Polar<Xorshift64>>::new(0.0, var, Xorshift64::new(Some(19937)));
       let mu: f64 = e.sample_n(TRIALS).iter().sum::<f64>() / (TRIALS as f64);
-      // mean should be 0.0 +/- 
+      // mean should be 0.0 +/-
       assert!(mu.abs() < (var / (TRIALS as f64)).sqrt());
     }
   }

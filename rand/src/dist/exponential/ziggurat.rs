@@ -1,5 +1,5 @@
 
-// Ziggurat algorithms for exponential distribution 
+// Ziggurat algorithms for exponential distribution
 use crate::gen::RandomStream;
 use crate::gen::Rejectable;
 use crate::gen::Dimensionless;
@@ -37,7 +37,7 @@ impl<R: RandomStream + Dimensionless + Rejectable> Ziggurat<R> {
       r[i] = x[i+1] / x[i];
     }
 
-    Ziggurat{rng: rng, x: x, r: r}
+    Ziggurat{rng, x, r}
   }
 
 // voidzigset(unsignedlongjsrseed)
@@ -85,9 +85,7 @@ impl<R: RandomStream + Dimensionless + Rejectable> Ziggurat<R> {
       y = self.rng.uniform01().ln();
       if -2.0 * y >= x * x { break };
     }
-    // let mult = if neg { 1.0 } else { -1.0 };
-    // return (dmin - x) * mult;
-    if neg { return x - dmin; } else { return dmin - x; }
+    if neg { x - dmin } else { dmin - x }
   }
 
   fn get_impl(&mut self) -> f64 {

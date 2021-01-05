@@ -4,7 +4,7 @@
 // mod gen  is implicit from this filename
 use crate::gen::*;
 
-/// Linear congruential generator equivalent to the C++11 minstd_rand 
+/// Linear congruential generator equivalent to the C++11 minstd_rand
 pub struct LCG {
   /// The seed
   s: u32,
@@ -33,7 +33,7 @@ fn get_seed(seed: Option<u32>) -> u32 {
   }
 }
 
-// private 
+// private
 impl LCG {
   const A: u64 = 48271;
   const M: u64 = std::i32::MAX as u64;
@@ -44,17 +44,17 @@ impl LCG {
   pub fn new(seed: Option<u32>) -> LCG {
     let seed = get_seed(seed);
     assert_ne!(seed, 0);
-    LCG{s: seed, r: seed}   
+    LCG{s: seed, r: seed}
   }
 }
 
 impl Seeded for LCG {
   fn seed(&self) -> u32 {
-    self.s 
+    self.s
   }
 }
 
-impl Rejectable for LCG { } 
+impl Rejectable for LCG { }
 
 impl Dimensionless for LCG {
   fn next_1(&mut self) -> u32 {
@@ -71,7 +71,7 @@ impl RandomStream for LCG {
   fn next_n(&mut self, n: usize) -> Vec<u32> {
     (0..n).map(|_| self.next_1()).collect()
   }
-  
+
   fn uniforms01(&mut self, n: usize) -> Vec<f64> {
     (0..n).map(|_| self.uniform01()).collect()
   }
@@ -79,7 +79,7 @@ impl RandomStream for LCG {
 
 impl Resettable for LCG {
   fn reset(&mut self) -> &mut Self {
-    self.r = self.s;  
+    self.r = self.s;
     self
   }
 
@@ -108,9 +108,9 @@ impl Rejectable for Xorshift64 { }
 impl Dimensionless for Xorshift64 {
   fn next_1(&mut self) -> u32 {
     let mut x = self.r;
-    x ^= x << 13; 
-    x ^= x >> 7; 
-    x ^= x << 17; 
+    x ^= x << 13;
+    x ^= x >> 7;
+    x ^= x << 17;
     self.r = x;
     (self.r & 0x00000000FFFFFFFF) as u32
   }
@@ -133,8 +133,8 @@ impl RandomStream for Xorshift64 {
 
 impl Resettable for Xorshift64 {
   fn reset(&mut self) -> &mut Self {
-    self.r = self.s as u64; 
-    self 
+    self.r = self.s as u64;
+    self
   }
 
   fn skip(&mut self, n: u32) -> &mut Self {
@@ -148,10 +148,10 @@ impl Resettable for Xorshift64 {
 extern {
   // std::mt19937* mt19937_create(uint32_t seed)
   fn mt19937_create(seed: u32) -> MT19937Impl;
-  // uint32_t mt_19937_next(std::mt19937* pimpl) 
+  // uint32_t mt_19937_next(std::mt19937* pimpl)
   fn mt19937_next(pimpl: MT19937Impl) -> u32;
   // void mt19937_destroy(std::mt19937* pimpl)
-  fn mt19937_destroy(pimpl: MT19937Impl) -> ();
+  fn mt19937_destroy(pimpl: MT19937Impl);
 }
 
 impl Drop for MT19937 {
@@ -163,7 +163,7 @@ impl Drop for MT19937 {
 impl MT19937 {
   pub fn new(seed: Option<u32>) -> MT19937 {
     let seed = get_seed(seed);
-    unsafe { MT19937{seed:seed, pimpl: mt19937_create(seed)} }
+    unsafe { MT19937{seed, pimpl: mt19937_create(seed)} }
   }
 }
 
@@ -190,8 +190,8 @@ impl RandomStream for MT19937 {
 
 impl Resettable for MT19937 {
   fn reset(&mut self) -> &mut Self {
-    unsafe { 
-      mt19937_destroy(self.pimpl); 
+    unsafe {
+      mt19937_destroy(self.pimpl);
       self.pimpl = mt19937_create(self.seed);
     }
     self
@@ -236,7 +236,7 @@ mod test {
   #[should_panic]
   fn test_xorshift64_failures() {
     Xorshift64::new(Some(0));
-  }  
+  }
 
   // fn moved(rng: MT19937) {
   //   println!("moved rng {:?}", rng.next_n(10));

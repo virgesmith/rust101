@@ -2,7 +2,7 @@
 pub mod inversecumulative;
 pub mod ziggurat;
 
-// Algorithms to transform uniform variates to exponential 
+// Algorithms to transform uniform variates to exponential
 
 pub fn pdf(x: f64, lambda: f64) -> f64 {
   match x {
@@ -26,7 +26,7 @@ pub fn cdf(x: f64, lambda: f64) -> f64 {
 // when sampling from uniform [0,1] randoms, by symmetry can just use f rather than 1-f ?
 pub fn inv_cdf(f: f64, lambda: f64) -> f64 {
   assert!(lambda > 0.0);
-  assert!(f >= 0.0 && f <= 1.0);
+  assert!((0.0..=1.0).contains(&f));
   -(1.0-f).ln() / lambda
 }
 

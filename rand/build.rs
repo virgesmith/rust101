@@ -14,7 +14,8 @@ fn main() {
   Command::new("ar").args(&["crus", "./libmt19937.a", "./MT19937.o"])
                     .current_dir("./lib").status().unwrap();
 
-  println!("cargo:rustc-link-search=native={}", "./lib");
+  let libdir = "./lib";
+  println!("cargo:rustc-link-search=native={}", libdir);
   println!("cargo:rustc-link-lib=static=mt19937");
   println!("cargo:rustc-link-lib=static=sobol");
   // needed for operator new & delete in MT19937.cpp
