@@ -1,7 +1,6 @@
 
-[![Travis Build Status](https://travis-ci.org/virgesmith/rust101.svg?branch=master)](https://travis-ci.org/virgesmith/rust101)
-
 # rust 101
+
 Learning rust...(work in progress) with the help of [codewars](https://www.codewars.com):
 
 ![https://www.codewars.com/users/virgesmith/badges/micro](https://www.codewars.com/users/virgesmith/badges/micro)
@@ -9,8 +8,9 @@ Learning rust...(work in progress) with the help of [codewars](https://www.codew
 I've a C++ background (high-performance numerical computing) and Rust sounded interesting as it claims to prevent all(?) UB and enforces rules at compile time that I wish I could implement in C++, and expressly doesn't use a garbage collector. I'm extremely curious to see what runtime performance penalty (if any) all of this incurs.
 
 #### Disclaimers
+
 - spoiler alert: this repo contains solutions to some codewars Kata
-- none of the code here is intended to be production quality.
+- none of the code here is, or is intended to be production quality.
 
 ### Resources
 - https://doc.rust-lang.org/
@@ -18,35 +18,17 @@ I've a C++ background (high-performance numerical computing) and Rust sounded in
 |*Contents*
 |----------
 |[complex](#complex)
-|[crypto](#crypto)
 |[linked-list](#linked-list)
-|[neon-module](#neon-module)
-|[pycrypto](#pycrypto)
 |[rand](#rand)
 |[rectangle](#rectangle)
 |[vector](#vector)
 |[webserver](#server)
 
-## Crypto
 
-A port of some C++ code I wrote to do some cryptocurrency-related tasks - command-line tools for hashing, EC keys, signing, verifying, and generation of bitcoin vanity addresses. The latter is a nice a nice simple problem for concurrency - threads only need to talk when one of them has found the answer.
-
-The package contains a core library and a number of command-line utilities:
-- `hash160` sha-256 + ripemd160 hash of an input file
-- `hash256` sha-256 x 2 hash of an input file 
-- `pubKey` takes a pem-encoded private key file and prints the public key in various formats, including a BTC address (p2pkh)
-- `prvKey` takes a pem-encoded private key file and prints the private key in various formats, including BTC wallet import format (WIF) 
-- `sign` computes an ECDSA signature of a hash of the specified file, given a pem-encoded private key file 
-- `verify` checks an ECDSA signature against a file and a (hex-encoded) public key  
-- `vanity` randomly searches EC keys until one is found that maps to a base-58 P2PKH address beginning '1' + the search string, e.g `vanity BTC` will return an address beginning `1BTC  ) 
-
-## PyCrypto
-
-Python bindings for the [crypto](#crypto), using `pyo3` and `maturin`, more [here](./pycrypto/README.md).
-
-## neon-module
-
-node.js bindings for rust, JSON (de)serialisation, async functions. More [here](neon-module/README.md)...
+|*Moved to dedicated repos*
+|----------
+|[crypto](https://github.com/virgesmith/crypto-rs)
+|[pycrypto](https://github.com/virgesmith/pycrypto-rs)
 
 ## Complex
 
@@ -71,7 +53,7 @@ but a signature like this:
   fn div(lhs: T, &self) -> Cplx<T> {
 ```
 which doesn't seem to be allowed, so
-```  
+```
 let i = Cplx<f64>::new(0.0, 1.0);
 let z = 2.0 / i;
             ^ no implementation for `{float} / Cplx<f64>`
@@ -89,7 +71,7 @@ as a workaround I just implemented a `recip()` function:
 This was an attempt to understand algebraic enumerations... NB the code no longer closely reflects what follows.
 
 If you think the (signed) integer absolute value function `int abs(int)` is safe (in terms of having well-defined output for any input) you'd be wrong!
-The way two's complement works means there's one more negative integer than positive: with 8 bits that means the range of values is -128..127. So `abs(-128)` return value is outside its domain. 
+The way two's complement works means there's one more negative integer than positive: with 8 bits that means the range of values is -128..127. So `abs(-128)` return value is outside its domain.
 
 ### How would you solve this in C++?
 Adding a runtime check
@@ -139,7 +121,7 @@ enum Number<T> where T: Into<f64> {
 }
 ```
 where
-- `T` must be castable to a double 
+- `T` must be castable to a double
 - infinity is a special case, like IEEE754 there are positive and negative variants
 
 So for `sqrt` its either real or imaginary, depending on sign:
@@ -163,7 +145,7 @@ fn ln(x: f64) -> Number<f64> {
 }
 
 ```
-* i = (2n+1).pi for all integer n, we just take the n=0 root. 
+* i = (2n+1).pi for all integer n, we just take the n=0 root.
 
 ## Rand
 
@@ -178,7 +160,7 @@ The following generators are implemented:
 - 64-bit xor shift generator
 - Mersenne twister (link to C++11 std lib implementation)
 - Sobol quasirandom sequence generator (link to C implementation)
-- "EntropySource": true(ish) random using /dev/urandom (/dev/random too slow) 
+- "EntropySource": true(ish) random using /dev/urandom (/dev/random too slow)
 
 Which implement one or more of the traits
 - RandomStream: produces vectors of `u32` and `f64`
@@ -186,15 +168,15 @@ Which implement one or more of the traits
 - Dimensioned: has inherent dimension (i.e. Sobol)
 - Dimensionless: can sample one at a time (i.e. not Sobol)
 - Rejectable: variates can be dropped and randomness properties are retained (i.e. not Sobol)
-- Resettable: can be reset to initial state (not EntropySource) 
+- Resettable: can be reset to initial state (not EntropySource)
 
 and the distributions:
 - Discrete uniform
 - Discrete weighted
 - Discrete without-replacement
 - Continuous uniform
-- Normal, three variants: 
-  - Marsaglia's polar version of the Box-Muller algorithm, 
+- Normal, three variants:
+  - Marsaglia's polar version of the Box-Muller algorithm,
   - Marsaglia's ziggurat algorithm,
   - Acklam's approximation to the inverse normal CDF
 - Exponential (using inverse CDF)
@@ -203,7 +185,7 @@ and the distributions:
 ```rust
 let mut dist = Normal::<InverseCumulative<Sobol>>::new(0.0, 1.0, Sobol::new(1));
 ```
-is fine, whereas 
+is fine, whereas
 ```rust
 let mut dist = Normal::<Polar<Sobol>>::new(0.0, 1.0, Sobol::new(1));
 ```
@@ -224,11 +206,11 @@ error[E0599]: no function or associated item named `new` found for type `dist::c
             `gen::quasi::Sobol : gen::Dimensionless`
             `gen::quasi::Sobol : gen::Rejectable`
 ```
-the point being that the polar algorithm is a rejection algorithm and Sobol sequences require all variates to be used to preserve their statistical properties. Thus, `Sobol` doesn't implement the `Rejectable` trait which is made a requirement for `Polar`'s template parameter. 
+the point being that the polar algorithm is a rejection algorithm and Sobol sequences require all variates to be used to preserve their statistical properties. Thus, `Sobol` doesn't implement the `Rejectable` trait which is made a requirement for `Polar`'s template parameter.
 
 ## Rectangle
 
-This is basically a few attempts at shoehorning C++ ways of doing things (classes, templates) into rust. 
+This is basically a few attempts at shoehorning C++ ways of doing things (classes, templates) into rust.
 
 ## Server
 
