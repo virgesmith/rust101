@@ -20,10 +20,10 @@ fn main() {
 
 fn handle_connection(mut stream: TcpStream) {
   let mut buffer = [0; 512];
-  stream.read(&mut buffer).unwrap();
+  let bytes_read = stream.read(&mut buffer).unwrap();
   let get = "GET";// / HTTP/1.1\r\n";
   //let post = "POST"; // / HTTP/1.1\r\n";
-  let req = String::from_utf8_lossy(&buffer);
+  let req = String::from_utf8_lossy(&buffer[..bytes_read]);
   let mut header = req.lines().next().unwrap().split(' ');
   let cmd = header.next().unwrap();
   let file = format!(".{}", header.next().unwrap());
@@ -39,13 +39,13 @@ fn handle_connection(mut stream: TcpStream) {
   //   ("HTTP/1.1 200 OK\r\n\r\n", "post.html")
   // } else {
   //   ("HTTP/1.1 404 NOT FOUND\r\n\r\n", "404.html")
-  
+
   println!("{}", filename);
   let mut file = File::open(filename).unwrap();
   let mut contents = String::new();
   file.read_to_string(&mut contents).unwrap();
   let response = format!("{}{}", status_line, contents);
-  stream.write(response.as_bytes()).unwrap();
+  stream.write_all(response.as_bytes()).unwrap();
   stream.flush().unwrap();
 
 }

@@ -13,8 +13,8 @@ fn main() {
   let server = Server::new(|request, mut response| {
     println!("Request received. {} {}", request.method(), request.uri());
 
-    match request.method() {
-      &Method::GET => {
+    match *request.method() {
+      Method::GET => {
         let filename = format!("public{}", request.uri().path());
         if Path::new(&filename).is_file() {
           let mut file = File::open(filename)?;  //.unwrap());
@@ -22,12 +22,12 @@ fn main() {
           // read the whole file
           file.read_to_end(&mut content)?;
           Ok(response.body(content)?)
-        } else { 
+        } else {
           response.status(StatusCode::NOT_FOUND);
           Ok(response.body("<h1>404</h1><p>Not found!<p>\n".as_bytes().to_vec())?)
         }
       }
-      &Method::POST => {
+      Method::POST => {
         let mut f = File::create(format!("public{}", request.uri().path()))?;
         // TODO file-specific mutex
         let _lock = Arc::new(Mutex::new(0));

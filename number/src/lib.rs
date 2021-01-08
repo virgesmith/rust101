@@ -2,6 +2,8 @@ extern crate num;
 use num::traits::{One, Zero};
 use num::{Bounded, Float, Integer, Signed};
 
+use core::ops::Add;
+
 #[derive(Debug, PartialEq)] // PartialEq required to test error values
 pub enum NumericalError {
   // hardware FP exceptions
@@ -25,15 +27,33 @@ where
   }
 }
 
-//#[allow(non_snake_case)]
 #[derive(Copy, Clone, Debug)]
-pub enum Number<T>
-where
-  T: Into<f64> + Float + Copy,
+pub enum Number<T> where T: Into<f64> + Float + Copy,
 {
   R(T),
   C { r: T, i: T },
-  Inf(T), // use T's inf...otherwise cant resolve type of T
+  Inf(bool), // use T's inf...otherwise cant resolve type of T. how do we resolve x-Inf?
+}
+
+
+impl<T> Number<T> where T: Into<f64> + Float + Copy,
+{
+  pub fn from_real(x: T) -> Number<T> {
+    // TODO check for inf...
+    // match x {
+    //   _ => Number::R(x)
+    // }
+    Number::R(x)
+  }
+
+  pub fn from_complex(r: T, i: T) -> Number<T> {
+    Number::C{r, i}
+  }
+
+  pub fn from_inf(is_neg: bool) -> Number<T> {
+    Number::Inf(is_neg)
+  }
+
 }
 
 impl<T: PartialEq> PartialEq for Number<T>
@@ -42,16 +62,32 @@ where
   T: Float + Copy,
 {
   fn eq(&self, other: &Number<T>) -> bool {
-    match (self, other) {
-      (&Number::R(ref a), &Number::R(ref b)) => a == b,
-      (&Number::R(ref a), &Number::C { r: ref rb, i: ref ib }) => a == rb && &T::zero() == ib,
-      (&Number::C { r: ref ra, i: ref ia }, &Number::R(ref b)) => ra == b && &T::zero() == ia,
-      (&Number::C { r: ref ra, i: ref ia }, &Number::C { r: ref rb, i: ref ib }) => ra == rb && ia == ib,
-      (&Number::Inf(ref a), &Number::Inf(ref b)) => a == b,
+    match (*self, *other) {
+      (Number::R(ref a), Number::R(ref b)) => a == b,
+      (Number::R(ref a), Number::C { r: ref rb, i: ref ib }) => a == rb && &T::zero() == ib,
+      (Number::C { r: ref ra, i: ref ia }, Number::R(ref b)) => ra == b && &T::zero() == ia,
+      (Number::C { r: ref ra, i: ref ia }, Number::C { r: ref rb, i: ref ib }) => ra == rb && ia == ib,
+      (Number::Inf(ref a), Number::Inf(ref b)) => a == b,
       _ => false,
     }
   }
 }
+
+
+impl<T> Add<Number<T>> for Number<T> where T: Into<f64> + Float + Copy {
+	type Output = Number<T>;
+	fn add(self, rhs: Number<T>) -> Number<T> {
+		match (self, rhs) {
+      (Number::R(a), Number::R(b)) => Number::R(a+b),
+      (Number::R(a), Number::C{r:rb, i:ib}) => Number::C{r:a+rb, i:ib},
+      (Number::C{r:ra, i:ia}, Number::R(b)) => Number::C{r:ra+b, i:ia},
+      (Number::C{r:ra, i:ia}, Number::C{r:rb, i:ib}) => Number::C{r:ra+rb, i:ia+ib},
+      _ => Number::Inf(false)
+    }
+	}
+}
+
+
 
 impl<T> Number<T>
 where
@@ -120,10 +156,14 @@ pub fn ln(x: f64) -> Number<f64> {
       r: (-x).ln(),
       i: std::f64::consts::PI,
     },
-    x if x == 0.0 => Number::Inf(std::f64::NEG_INFINITY),
+    x if x == 0.0 => Number::Inf(true),
     _ => Number::R(x.ln()),
   }
 }
+
+// impl Div for Number<T> {
+//   fn div()
+// }
 
 #[cfg(test)]
 

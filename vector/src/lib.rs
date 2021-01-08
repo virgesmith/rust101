@@ -11,7 +11,7 @@ const EPS: f64 = 1.0 / (1u32 << 20) as f64; // ~6 dp
 impl Vector {
 
   pub fn new(i: f64, j: f64, k: f64) -> Vector {
-    Vector{i: i, j: j, k: k}
+    Vector{i, j, k}
   }
 
   pub fn modulus(self: &Vector) -> f64 {
@@ -52,7 +52,7 @@ pub fn dot(lhs: &Vector, rhs: &Vector) -> f64 {
 }
 
 pub fn cross(lhs: &Vector, rhs: &Vector) -> Vector {
-  Vector{ 
+  Vector{
     i: lhs.j * rhs.k - lhs.k * rhs.j,
     j: lhs.k * rhs.i - lhs.i * rhs.k,
     k: lhs.i * rhs.j - lhs.j * rhs.i
@@ -68,7 +68,7 @@ pub fn parallel(lhs: &Vector, rhs: &Vector) -> bool {
 pub fn perpendicular(lhs: &Vector, rhs: &Vector) -> bool {
   lhs.modulus() > 0.0 &&
   rhs.modulus() > 0.0 &&
-  dot(lhs, rhs).abs() < EPS 
+  dot(lhs, rhs).abs() < EPS
 }
 
 

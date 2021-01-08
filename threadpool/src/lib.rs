@@ -43,7 +43,7 @@ impl Worker {
   }
 }
 
-type Job = Box<FnBox + Send + 'static>;
+type Job = Box<dyn FnBox + Send + 'static>;
 
 pub struct ThreadPool {
   workers: Vec<Worker>,
@@ -55,7 +55,7 @@ impl ThreadPool {
   /// size: the number of threads in the pool.
   ///
   /// # Panics if
-  /// size=0  
+  /// size=0
   pub fn new(size: usize) -> ThreadPool {
     assert!(size > 0);
 
@@ -66,7 +66,7 @@ impl ThreadPool {
     for id in 0..size {
       workers.push(Worker::new(id, Arc::clone(&receiver)));
     }
-    ThreadPool { workers, sender, }
+    ThreadPool { workers, sender }
   }
 
   pub fn execute<F>(&self, f: F)
