@@ -82,7 +82,7 @@ impl<T> Add<Number<T>> for Number<T> where T: Into<f64> + Float + Copy {
       (Number::R(a), Number::C{r:rb, i:ib}) => Number::C{r:a+rb, i:ib},
       (Number::C{r:ra, i:ia}, Number::R(b)) => Number::C{r:ra+b, i:ia},
       (Number::C{r:ra, i:ia}, Number::C{r:rb, i:ib}) => Number::C{r:ra+rb, i:ia+ib},
-      _ => Number::Inf(false)
+      _ => Number::Inf(false) // problem: potentially indeterminate
     }
 	}
 }
@@ -189,10 +189,10 @@ mod tests {
     assert_eq!(C { r: 1.0, i: 0.0 }, r);
     assert_ne!(r, C { r: 1.0, i: 0.1 });
     assert_ne!(C { r: 1.1, i: 0.0 }, r);
-    assert_eq!(Inf(std::f64::INFINITY), Inf(std::f64::INFINITY));
-    assert_eq!(Inf(std::f64::NEG_INFINITY), Inf(std::f64::NEG_INFINITY));
-    assert_ne!(Inf(std::f64::INFINITY), Inf(std::f64::NEG_INFINITY));
-    assert_ne!(Inf(std::f64::NEG_INFINITY), Inf(std::f64::INFINITY));
+    assert_eq!(Inf::<f64>(false), Inf::<f64>(false));
+    assert_eq!(Inf::<f64>(true), Inf::<f64>(true));
+    assert_ne!(Inf::<f64>(false), Inf::<f64>(true));
+    assert_ne!(Inf::<f64>(true), Inf::<f64>(false));
   }
 
   #[test]
@@ -224,7 +224,7 @@ mod tests {
     assert_eq!(sqrt(-64.), C { r: 0.0, i: 8.0 });
 
     assert_eq!(ln(1.0), R(0.0));
-    assert_eq!(ln(0.0), Inf(std::f64::NEG_INFINITY));
+    assert_eq!(ln(0.0), Inf::<f64>(true));
     assert_eq!(ln(std::f64::consts::E), R(1.0));
     assert_eq!(
       ln(-std::f64::consts::E),
