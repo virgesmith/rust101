@@ -1,4 +1,5 @@
 
+// This helped: https://kobi-cohenarazi.medium.com/c-vs-rust-simple-polymorphism-comparison-e4d16024b57
 
 use std::convert::Into;
 
@@ -8,18 +9,16 @@ trait Shape {
   fn aspect(&self) -> f64;
 }
 
-
 // no constraints on T here? but assume better practice to enforce traits here? (as opposed to impl?)
+#[derive(Debug)]
+struct Circle<T> {
+  r: T,
+}
+
 #[derive(Debug)]
 struct Rectangle<T> {
   w: T,
   h: T
-}
-
-
-#[derive(Debug)]
-struct Circle<T> {
-  r: T,
 }
 
 // restrict T to a type that supports multiplication and conversion to double
@@ -34,7 +33,6 @@ impl<T> Shape for Rectangle<T> where T: Clone + Into<f64> {
   }
 }
 
-// struct version
 impl<T> Shape for Circle<T> where T: Clone + Into<f64> {
   fn area(&self) -> f64 {
     self.r.clone().into() * self.r.clone().into() * std::f64::consts::PI

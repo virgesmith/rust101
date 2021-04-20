@@ -21,7 +21,7 @@ I've a C++ background (high-performance numerical computing) and Rust sounded in
 |[complex](#complex)
 |[linked-list](#linked-list)
 |[rand](#rand)
-|[rectangle](#rectangle)
+|[shape](#shape)
 |[vector](#vector)
 |[webserver](#server)
 
@@ -50,21 +50,7 @@ where
 }
 ```
 
-but a signature like this:
-
-```
-  fn div(lhs: T, &self) -> Cplx<T> {
-```
-
-which doesn't seem to be allowed, so
-
-```
-let i = Cplx<f64>::new(0.0, 1.0);
-let z = 2.0 / i;
-            ^ no implementation for `{float} / Cplx<f64>`
-```
-
-as a workaround I just implemented a `recip()` function:
+I haven't yet figured out how to implement both orderings of noncommutative binary operators, so e.g. as a workaround I just implemented a `recip()` function rather than an overload:
 
 ```rust
   pub fn recip(&self) -> Cplx<T> {
@@ -233,9 +219,9 @@ error[E0599]: no function or associated item named `new` found for type `dist::c
 
 the point being that the polar algorithm is a rejection algorithm and Sobol sequences require all variates to be used to preserve their statistical properties. Thus, `Sobol` doesn't implement the `Rejectable` trait which is made a requirement for `Polar`'s template parameter.
 
-## Rectangle
+## Shape
 
-This is basically a few attempts at shoehorning C++ ways of doing things (classes, templates) into rust.
+Implementing polymorphism in C++ and rust
 
 ## Server
 

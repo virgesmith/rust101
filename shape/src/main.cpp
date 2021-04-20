@@ -3,9 +3,8 @@
 
 #include <memory>
 #include <vector>
-#include <cstdio> // closer to println!
+#include <cstdio>
 #include <cmath>
-#include <cstdint>
 
 struct Shape
 {
